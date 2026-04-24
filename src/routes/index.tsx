@@ -100,6 +100,26 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     .filter(Boolean)
     .map((line) => line.replace(/^[-*\u2022]\s*/, ""));
 
+  let amountLabel: string | undefined;
+  if (opp.category === "funding") {
+    const amountBullet = detailBullets.find((bullet) => {
+      const b = bullet.toLowerCase();
+      return (
+        b.includes("amount") ||
+        b.includes("reward") ||
+        b.includes("fund") ||
+        b.includes("cash") ||
+        b.includes("prize") ||
+        b.includes("grant") ||
+        b.includes("₹")
+      );
+    });
+    if (amountBullet) {
+      // Clean up common prefixes to avoid redundancy
+      amountLabel = amountBullet.replace(/^(amount|cash|reward|prize|grant|fund|available)\s*:\s*/i, "");
+    }
+  }
+
   return {
     id: opp.id,
     title: opp.title,
@@ -108,6 +128,7 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     category: (opp.category as BulletinItem["category"]) || "funding",
     status: opp.status,
     dateLabel,
+    amountLabel,
     link: opp.external_link || undefined,
     imageUrl: opp.poster_url || undefined,
     bannerCrop: parseBannerCrop(opp.poster_banner_crop),
@@ -193,9 +214,11 @@ export default function IndexPage() {
       eventSource: "home_card",
     });
 
-    setTimeout(() => setFeedbackId(id), 2000);
-
     window.open(targetLink, "_blank", "noopener,noreferrer");
+  };
+
+  const handleClose = (id: string) => {
+    setFeedbackId(id);
   };
 
   const handleItemViewed = async (item: BulletinItem, durationMs: number) => {
@@ -359,6 +382,7 @@ export default function IndexPage() {
                       <OpportunityCard
                         opportunity={item}
                         onGetAccess={handleGetAccess}
+                        onClose={handleClose}
                         onViewed={(_, durationMs) => {
                           void handleItemViewed(item, durationMs);
                         }}
