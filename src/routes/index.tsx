@@ -22,10 +22,10 @@ type SortMode = "newest_date" | "oldest_date";
 const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "all", label: "All opportunities" },
   { value: "funding", label: "Capital and opportunities" },
-  { value: "events", label: "Rooms to be in" },
-  { value: "news", label: "Ecosystem updates" },
-  { value: "hiring", label: "Hiring and founder support" },
-  { value: "something_new", label: "Something new for you" },
+  { value: "events", label: "Events" },
+  { value: "news", label: "Ecosystem News" },
+  { value: "hiring", label: "Talent Scouting" },
+  { value: "something_new", label: "New for you" },
 ];
 
 function toTimestamp(value?: string | null): number | null {
