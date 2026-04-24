@@ -119,25 +119,16 @@ export default function IndexPage() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("oldest_date");
 
-  const handleCardClose = (id: string) => {
-    // If we were waiting for them to come back from an "Apply" click, 
-    // we clear that since they are now closing the card manually.
-    if (lastAppliedId === id) {
-      setLastAppliedId(null);
-    }
-    
-    // Only ask for feedback if not already given
-    try {
-      const given = JSON.parse(localStorage.getItem("bower_feedback_given") || "[]");
-      if (Array.isArray(given) && given.includes(id)) {
-        return; // Already given feedback
+  useEffect(() => {
+    const handleFocus = () => {
+      if (lastAppliedId) {
+        setFeedbackId(lastAppliedId);
+        setLastAppliedId(null);
       }
-    } catch (e) {
-      // Ignore parse errors and proceed
-    }
-    
-    setFeedbackId(id);
-  };
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [lastAppliedId]);
 
   usePageTracking(user?.id || null, "/");
 
@@ -160,26 +151,14 @@ export default function IndexPage() {
     load();
   }, []);
 
-  useEffect(() => {
-    const handleFocus = () => {
-      if (lastAppliedId) {
-        const idToTrigger = lastAppliedId;
-        setLastAppliedId(null);
-
-        // Only ask for feedback if not already given
-        try {
-          const given = JSON.parse(localStorage.getItem("bower_feedback_given") || "[]");
-          if (Array.isArray(given) && given.includes(idToTrigger)) {
-            return;
-          }
-        } catch (e) {}
-
-        setFeedbackId(idToTrigger);
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [lastAppliedId]);
+  const handleCardClose = (id: string) => {
+    // If we were waiting for them to come back from an "Apply" click, 
+    // we clear that since they are now closing the card manually.
+    if (lastAppliedId === id) {
+      setLastAppliedId(null);
+    }
+    setFeedbackId(id);
+  };
 
   const handleGetAccess = async (id: string) => {
     const dbItem = opportunities.find((o) => o.id === id);
