@@ -66,10 +66,9 @@ interface OpportunityCardProps {
   opportunity: BulletinItem;
   onGetAccess: (id: string) => void;
   onViewed?: (id: string, durationMs: number) => void;
-  onClose?: (id: string) => void;
 }
 
-export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, onGetAccess, onViewed }: OpportunityCardProps) {
   const [open, setOpen] = useState(false);
   const hasAction = Boolean(opportunity.link);
   const bannerCrop = getBannerCrop(opportunity.bannerCrop);
@@ -155,28 +154,16 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-4">
-          <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground">
-              {(opportunity.category === "funding" || opportunity.category === "events") && opportunity.dateLabel
-                ? opportunity.dateLabel
-                : ""}
-            </span>
-            {opportunity.category === "funding" && opportunity.amountLabel && (
-              <p className="text-[10px] font-medium text-foreground">
-                <span className="text-muted-foreground">Cash amount/rewards/fund/amount available:</span> {opportunity.amountLabel}
-              </p>
-            )}
-          </div>
+          <span className="text-xs text-muted-foreground">
+            {(opportunity.category === "funding" || opportunity.category === "events") && opportunity.dateLabel
+              ? opportunity.dateLabel
+              : ""}
+          </span>
           <span className="text-xs font-medium text-primary">Click to view and apply</span>
         </CardFooter>
       </Card>
 
-      <Dialog open={open} onOpenChange={(isOpen) => {
-        setOpen(isOpen);
-        if (!isOpen) {
-          onClose?.(opportunity.id);
-        }
-      }}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="pr-6 font-display text-xl">{opportunity.title}</DialogTitle>
