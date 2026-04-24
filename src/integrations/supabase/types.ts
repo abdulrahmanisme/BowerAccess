@@ -69,6 +69,7 @@ export type Database = {
           deadline: string | null
           details_bullets: string | null
           description: string
+          job_description: string | null
           end_date: string | null
           external_link: string | null
           id: string
@@ -87,6 +88,7 @@ export type Database = {
           deadline?: string | null
           details_bullets?: string | null
           description: string
+          job_description?: string | null
           end_date?: string | null
           external_link?: string | null
           id?: string
@@ -105,6 +107,7 @@ export type Database = {
           deadline?: string | null
           details_bullets?: string | null
           description?: string
+          job_description?: string | null
           end_date?: string | null
           external_link?: string | null
           id?: string

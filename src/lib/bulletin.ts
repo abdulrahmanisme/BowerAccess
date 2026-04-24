@@ -13,6 +13,7 @@ export interface BulletinItem {
   id: string;
   title: string;
   description: string;
+  jobDescription?: string;
   detailBullets?: string[];
   category: BulletinCategory;
   status: "draft" | "published" | "archived";

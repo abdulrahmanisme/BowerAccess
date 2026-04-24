@@ -96,6 +96,7 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     id: opp.id,
     title: opp.title,
     description: opp.description,
+    jobDescription: opp.job_description || undefined,
     detailBullets: detailBullets.length > 0 ? detailBullets : undefined,
     category: (opp.category as BulletinItem["category"]) || "funding",
     status: opp.status,

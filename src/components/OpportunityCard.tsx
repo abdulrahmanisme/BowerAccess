@@ -71,7 +71,18 @@ interface OpportunityCardProps {
 
 export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }: OpportunityCardProps) {
   const [open, setOpen] = useState(false);
+  const [jdOpen, setJdOpen] = useState(false);
   const hasAction = Boolean(opportunity.link);
+  const isHiring = opportunity.category === "hiring";
+
+  const handleApplyClick = () => {
+    if (isHiring && opportunity.jobDescription) {
+      setJdOpen(true);
+    } else {
+      onGetAccess(opportunity.id);
+    }
+  };
+
   const bannerCrop = getBannerCrop(opportunity.bannerCrop);
   const hasPoster = Boolean(opportunity.imageUrl);
   const isPosterOptional = isPosterOptionalForCategory(opportunity.category);
@@ -120,7 +131,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
                         {optionalPlaceholder.title}
                       </p>
                       <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                        {opportunity.category === "hiring" && opportunity.description
+                        {isHiring && opportunity.description
                           ? opportunity.description
                           : optionalPlaceholder.subtitle}
                       </p>
@@ -235,13 +246,46 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
             {hasAction ? (
               <Button
                 size="sm"
-                onClick={() => onGetAccess(opportunity.id)}
+                onClick={handleApplyClick}
                 className="gap-1.5"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Apply
               </Button>
             ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={jdOpen} onOpenChange={setJdOpen}>
+        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Full Job Description</DialogTitle>
+            <DialogDescription className="sr-only">
+              Complete job description for {opportunity.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+              {opportunity.jobDescription}
+            </div>
+
+            <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setJdOpen(false)}>
+                Go Back
+              </Button>
+              <Button 
+                onClick={() => {
+                  setJdOpen(false);
+                  onGetAccess(opportunity.id);
+                }}
+                className="gap-1.5"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Confirm & Apply
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -383,6 +383,7 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
   const handleSave = async (formData: {
     title: string;
     description: string;
+    job_description: string;
     details_text: string;
     category: "funding" | "events" | "hiring" | "news" | "something_new";
     start_date: string;
@@ -597,11 +598,12 @@ function OpportunityFormDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSave: (data: { title: string; description: string; details_text: string; category: "funding" | "events" | "hiring" | "news" | "something_new"; start_date: string; end_date: string; external_link: string; poster_url: string; poster_banner_crop: BannerCrop | null; status: "draft" | "published" | "archived" }) => void;
+  onSave: (data: { title: string; description: string; job_description: string; details_text: string; category: "funding" | "events" | "hiring" | "news" | "something_new"; start_date: string; end_date: string; external_link: string; poster_url: string; poster_banner_crop: BannerCrop | null; status: "draft" | "published" | "archived" }) => void;
   initial: Tables<"opportunities"> | null;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [detailsText, setDetailsText] = useState("");
   const [category, setCategory] = useState<"funding" | "events" | "hiring" | "news" | "something_new">("funding");
   const [startDate, setStartDate] = useState("");
@@ -618,6 +620,7 @@ function OpportunityFormDialog({
     if (initial) {
       setTitle(initial.title);
       setDescription(initial.description);
+      setJobDescription(initial.job_description || "");
       setDetailsText(
         (initial.details_bullets || "")
           .split(/\r?\n/)
@@ -636,6 +639,7 @@ function OpportunityFormDialog({
     } else {
       setTitle("");
       setDescription("");
+      setJobDescription("");
       setDetailsText("");
       setCategory("funding");
       setStartDate("");
@@ -734,6 +738,19 @@ function OpportunityFormDialog({
               placeholder="Describe the opportunity..."
             />
           </div>
+          {category === "hiring" && (
+            <div>
+              <Label>Job Description (Full Content)</Label>
+              <Textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                rows={10}
+                className="sm:min-h-[250px]"
+                placeholder="Paste the full job description here..."
+              />
+              <p className="mt-1 text-xs text-muted-foreground">This content will be shown in a secondary popup when users click 'Apply'.</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <div>
               <Label>Category</Label>
@@ -882,6 +899,7 @@ function OpportunityFormDialog({
             onClick={() => onSave({
               title,
               description,
+              job_description: jobDescription,
               details_text: detailsText,
               category,
               start_date: startDate,
