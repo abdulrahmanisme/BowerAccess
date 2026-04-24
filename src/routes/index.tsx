@@ -211,6 +211,10 @@ export default function IndexPage() {
 
   const dbItems = opportunities.map(mapToBulletinItem);
   const publishedItems = dbItems.filter((item) => item.status === "published");
+  const categoryCounts = publishedItems.reduce<Record<string, number>>((acc, item) => {
+    acc[item.category] = (acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
   const sortTimestampById = new Map(
     opportunities.map((opp) => [opp.id, getOpportunitySortTimestamp(opp)])
   );
@@ -260,18 +264,23 @@ export default function IndexPage() {
         </p>
         <div className="mt-5 space-y-3">
           <div className="flex flex-wrap gap-2">
-            {HOME_CATEGORY_FILTERS.map((filter) => (
-              <Button
-                key={filter.value}
-                type="button"
-                size="sm"
-                variant={categoryFilter === filter.value ? "default" : "secondary"}
-                className="rounded-full"
-                onClick={() => setCategoryFilter(filter.value)}
-              >
-                {filter.label}
-              </Button>
-            ))}
+            {HOME_CATEGORY_FILTERS.map((filter) => {
+              const count = filter.value === "all"
+                ? publishedItems.length
+                : categoryCounts[filter.value] || 0;
+              return (
+                <Button
+                  key={filter.value}
+                  type="button"
+                  size="sm"
+                  variant={categoryFilter === filter.value ? "default" : "secondary"}
+                  className="rounded-full"
+                  onClick={() => setCategoryFilter(filter.value)}
+                >
+                  {filter.label} ({count})
+                </Button>
+              );
+            })}
           </div>
 
           <div className="w-full sm:w-64">
