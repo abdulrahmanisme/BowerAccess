@@ -24,7 +24,7 @@ const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "funding", label: "Capital and opportunities" },
   { value: "events", label: "Events" },
   { value: "news", label: "Ecosystem News" },
-  { value: "hiring", label: "Talent Scouting" },
+  { value: "hiring", label: "Hiring - VC / PE Cohort" },
   { value: "something_new", label: "💥 New for you" },
 ];
 
