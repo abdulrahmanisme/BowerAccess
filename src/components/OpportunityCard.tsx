@@ -203,7 +203,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
               )
             ) : null}
 
-            <p className="text-sm leading-relaxed text-muted-foreground">{opportunity.description}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{opportunity.description}</p>
 
             <div className="space-y-1.5 text-sm text-muted-foreground">
               {opportunity.dateLabel && (
