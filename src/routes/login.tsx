@@ -17,7 +17,7 @@ export default function LoginPage() {
           <img
             src="/bower-logo.png"
             alt="Bower logo"
-            className="mx-auto mb-3 h-12 w-12 rounded-xl object-cover"
+            className="mx-auto mb-3 h-15 w-auto rounded-xl object-contain"
             loading="lazy"
           />
           <CardTitle className="font-display text-2xl">Sign in to Bower Access</CardTitle>

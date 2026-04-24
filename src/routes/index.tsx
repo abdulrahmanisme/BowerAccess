@@ -256,7 +256,7 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers May 2–17. Scan fast, act faster.
+          This edition covers 25 April – 10 May. Scan fast, act faster.
         </p>
         <div className="mt-5 space-y-3">
           <div className="flex flex-wrap gap-2">
