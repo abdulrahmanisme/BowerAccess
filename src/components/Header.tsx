@@ -20,11 +20,11 @@ export function Header() {
           <img
             src="/bower-logo.png"
             alt="Bower logo"
-            className="h-9 w-9 rounded-lg object-cover"
+            className="h-10 w-auto object-contain"
             loading="lazy"
           />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Bower Access
+            
           </span>
         </Link>
 
