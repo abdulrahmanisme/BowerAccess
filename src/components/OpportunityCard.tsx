@@ -22,13 +22,13 @@ const defaultBannerCrop = {
 
 const optionalPosterPlaceholderConfig = {
   news: {
-    title: "Ecosystem update",
+    title: "Ecosystem News",
     subtitle: "Text-first update",
     gradientClass: "from-secondary/90 via-secondary/60 to-card",
     Icon: Newspaper,
   },
   hiring: {
-    title: "Hiring spotlight",
+    title: "Talent Scouting",
     subtitle: "Role details inside",
     gradientClass: "from-hiring/25 via-secondary/50 to-card",
     Icon: Briefcase,

@@ -251,12 +251,12 @@ export default function IndexPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <section className="mb-10 rounded-2xl border border-border/70 bg-gradient-to-br from-card to-secondary/40 p-6 sm:p-8">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Bower Access Bulletin</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Bower Access</p>
         <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Curated for founders, builders, and cohorts.
+          Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          Filtered for relevance. Built for quick scanning. Act fast where applicable.
+          This edition covers May 2–17. Scan fast, act faster.
         </p>
         <div className="mt-5 space-y-3">
           <div className="flex flex-wrap gap-2">
