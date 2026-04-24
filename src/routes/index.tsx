@@ -116,7 +116,7 @@ export default function IndexPage() {
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [lastAppliedId, setLastAppliedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("newest_date");
+  const [sortMode, setSortMode] = useState<SortMode>("oldest_date");
 
   useEffect(() => {
     const handleFocus = () => {
