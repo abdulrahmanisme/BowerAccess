@@ -45,14 +45,14 @@ export const BULLETIN_SECTIONS: BulletinSection[] = [
     subtitle: "Rooms you must explore in online/Hyderabad to meet your customers, investors, other startup enthusiasts, SMEs, learn from experts directly.",
   },
   {
-    category: "hiring",
-    title: "Hiring - VC / PE Cohort",
-    subtitle: "Relevant roles for operators and investment talent.",
-  },
-  {
     category: "news",
     title: "Ecosystem Policy Updates/News",
     subtitle: "Key ecosystem updates that may affect founder decisions.",
+  },
+  {
+    category: "hiring",
+    title: "Hiring - VC / PE Cohort",
+    subtitle: "Relevant roles for operators and investment talent.",
   },
   {
     category: "something_new",

@@ -28,7 +28,7 @@ const optionalPosterPlaceholderConfig = {
     Icon: Newspaper,
   },
   hiring: {
-    title: "Talent Scouting",
+    title: "Hiring - VC / PE Cohort",
     subtitle: "Role details inside",
     gradientClass: "from-hiring/25 via-secondary/50 to-card",
     Icon: Briefcase,
