@@ -250,7 +250,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
                 className="gap-1.5"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Apply
+                {opportunity.category === "news" ? "Read More" : "Apply"}
               </Button>
             ) : null}
           </div>
