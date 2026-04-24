@@ -37,8 +37,8 @@ export interface BulletinSection {
 export const BULLETIN_SECTIONS: BulletinSection[] = [
   {
     category: "funding",
-    title: "Capital/Opportunities worth ₹ Crore",
-    subtitle: "Curated capital calls and grant opportunities for founders.",
+    title: "Capital/Opportunities worth ₹ 9.6 Crore",
+    subtitle: "Curated capital and opportunities relevent for idea and early stage startups.",
   },
   {
     category: "events",

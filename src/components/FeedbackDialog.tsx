@@ -61,6 +61,18 @@ export function FeedbackDialog({ open, onOpenChange, opportunityId }: FeedbackDi
       pagePath: "/",
       eventSource: "feedback_dialog",
     });
+    
+    // Store that feedback was given for this opportunity
+    try {
+      const given = JSON.parse(localStorage.getItem("bower_feedback_given") || "[]");
+      if (Array.isArray(given) && !given.includes(opportunityId)) {
+        given.push(opportunityId);
+        localStorage.setItem("bower_feedback_given", JSON.stringify(given));
+      }
+    } catch (e) {
+      console.error("Failed to save feedback status", e);
+    }
+
     toast.success("Thanks for your feedback!");
     onOpenChange(false);
     resetDialogState();
