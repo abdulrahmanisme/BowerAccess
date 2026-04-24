@@ -5,3 +5,9 @@ publish = "dist/client"
 # Configure secrets scanning to omit known non-sensitive environment variables
 [build.environment]
 SECRETS_SCAN_OMIT_KEYS = "VITE_POSTHOG_HOST,VITE_SUPABASE_PROJECT_ID"
+
+# Handle client-side routing for SPA
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
