@@ -1,19 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
-});
-
-function LoginPage() {
+export default function LoginPage() {
   const { user, signInWithGoogle, isLoading } = useAuth();
-  const navigate = useNavigate();
 
   if (user && !isLoading) {
-    navigate({ to: "/" });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   return (

@@ -1,14 +1,8 @@
 {
   "buildCommand": "bun run build",
-  "outputDirectory": "dist/client",
-  "functions": {
-    "api/ssr.ts": {
-      "runtime": "nodejs@20.x",
-      "includeFiles": "dist/server/**"
-    }
-  },
+  "outputDirectory": "dist",
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/api/ssr" }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

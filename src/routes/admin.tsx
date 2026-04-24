@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, type ChangeEvent, type MouseEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTracking } from "@/hooks/use-page-tracking";
@@ -64,11 +64,7 @@ function parsePosterBannerCrop(raw: Tables<"opportunities">["poster_banner_crop"
   };
 }
 
-export const Route = createFileRoute("/admin")({
-  component: AdminDashboard,
-});
-
-function AdminDashboard() {
+export default function AdminDashboardPage() {
   const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("analytics");
@@ -77,7 +73,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
-      navigate({ to: "/login" });
+      navigate("/login");
     }
   }, [user, isAdmin, isLoading, navigate]);
 

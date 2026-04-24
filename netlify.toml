@@ -1,14 +1,12 @@
 [build]
 command = "bun run build"
-publish = "dist/client"
-functions = "netlify/functions"
+publish = "dist"
 
 [build.environment]
 SECRETS_SCAN_OMIT_KEYS = "VITE_POSTHOG_HOST,VITE_SUPABASE_PROJECT_ID"
 
-# Route all requests to the SSR function (except static assets)
+# SPA fallback for client-side routes
 [[redirects]]
 from = "/*"
-to = "/.netlify/functions/ssr"
+to = "/index.html"
 status = 200
-force = true

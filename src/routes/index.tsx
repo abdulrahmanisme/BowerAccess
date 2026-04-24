@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,10 +15,6 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { BulletinItem } from "@/lib/bulletin";
 import { BULLETIN_SECTIONS } from "@/lib/bulletin";
-
-export const Route = createFileRoute("/")({
-  component: Index,
-});
 
 type CategoryFilter = BulletinItem["category"] | "all";
 type SortMode = "newest_date" | "oldest_date";
@@ -112,7 +108,7 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
   };
 }
 
-function Index() {
+export default function IndexPage() {
   const { user, signInWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<Tables<"opportunities">[]>([]);
@@ -125,7 +121,7 @@ function Index() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate({ to: "/login" });
+      navigate("/login");
     }
   }, [isLoading, navigate, user]);
 

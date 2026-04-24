@@ -1,12 +1,6 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { AuthProvider } from "@/providers/auth-provider";
-import { Header } from "@/components/Header";
-import { Toaster } from "@/components/ui/sonner";
-import { initPostHog } from "@/integrations/posthog";
+import { Link } from "react-router-dom";
 
-import appCss from "../styles.css?url";
-
-function NotFoundComponent() {
+export function NotFoundPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -25,53 +19,5 @@ function NotFoundComponent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Bower Access — Curated Opportunities for Founders" },
-      { name: "description", content: "Discover weekly curated funding, events, and hiring opportunities for founders." },
-      { property: "og:title", content: "Bower Access — Curated Opportunities for Founders" },
-      { property: "og:description", content: "Discover weekly curated funding, events, and hiring opportunities for founders." },
-      { property: "og:type", content: "website" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-});
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-
-function RootComponent() {
-  initPostHog();
-
-  return (
-    <AuthProvider>
-      <Header />
-      <Outlet />
-      <Toaster />
-    </AuthProvider>
   );
 }
