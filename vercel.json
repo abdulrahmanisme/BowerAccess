@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/client",
+  "functions": {
+    "api/ssr.ts": {
+      "runtime": "nodejs",
+      "includeFiles": "dist/server/**"
+    }
+  },
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/api/ssr" }
+  ]
+}
