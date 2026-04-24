@@ -114,13 +114,17 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed }: Opportun
                   <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
                   <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
                   <div className="relative flex w-full items-center justify-between px-4 py-3">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-foreground/85">
                         {optionalPlaceholder.title}
                       </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">{optionalPlaceholder.subtitle}</p>
+                      <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                        {opportunity.category === "hiring" && opportunity.description
+                          ? opportunity.description
+                          : optionalPlaceholder.subtitle}
+                      </p>
                     </div>
-                    <div className="rounded-full border border-border/60 bg-background/75 p-2">
+                    <div className="ml-3 shrink-0 rounded-full border border-border/60 bg-background/75 p-2">
                       <optionalPlaceholder.Icon className="h-4 w-4 text-foreground/80" />
                     </div>
                   </div>
@@ -150,7 +154,11 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed }: Opportun
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-4">
-          <span className="text-xs text-muted-foreground">From dashboard</span>
+          <span className="text-xs text-muted-foreground">
+            {(opportunity.category === "funding" || opportunity.category === "events") && opportunity.dateLabel
+              ? opportunity.dateLabel
+              : ""}
+          </span>
           <span className="text-xs font-medium text-primary">Tap to open</span>
         </CardFooter>
       </Card>

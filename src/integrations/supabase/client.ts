@@ -18,8 +18,10 @@ function readEnv(...candidates: Array<string | undefined>) {
 
 function createSupabaseClient() {
   // Prefer VITE_ values injected by Vite from .env, then SSR fallbacks.
-  const SUPABASE_URL = readEnv(import.meta.env.VITE_SUPABASE_URL, process.env.SUPABASE_URL);
-  const SUPABASE_PUBLISHABLE_KEY = readEnv(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, process.env.SUPABASE_PUBLISHABLE_KEY);
+  const ssrUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined;
+  const ssrKey = typeof process !== 'undefined' ? process.env.SUPABASE_PUBLISHABLE_KEY : undefined;
+  const SUPABASE_URL = readEnv(import.meta.env.VITE_SUPABASE_URL, ssrUrl);
+  const SUPABASE_PUBLISHABLE_KEY = readEnv(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, ssrKey);
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(

@@ -37,12 +37,12 @@ export const BULLETIN_SECTIONS: BulletinSection[] = [
   {
     category: "funding",
     title: "Capital/Opportunities",
-    subtitle: "Curated capital calls and grant opportunities for founders.",
+    subtitle: "Curated capital calls and grant opportunities for founders worth ₹26.3 Crore.",
   },
   {
     category: "events",
-    title: "Rooms To Be In",
-    subtitle: "High-signal events, meetups, and sessions to attend.",
+    title: "Events",
+    subtitle: "Rooms you must explore in online/Hyderabad to meet your customers, investors, other startup enthusiasts, SMEs, learn from experts directly.",
   },
   {
     category: "hiring",
