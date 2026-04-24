@@ -159,7 +159,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed }: Opportun
               ? opportunity.dateLabel
               : ""}
           </span>
-          <span className="text-xs font-medium text-primary">Tap to open</span>
+          <span className="text-xs font-medium text-primary">Click to view and apply</span>
         </CardFooter>
       </Card>
 
@@ -235,7 +235,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed }: Opportun
                 className="gap-1.5"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Open Link
+                Apply
               </Button>
             ) : null}
           </div>
