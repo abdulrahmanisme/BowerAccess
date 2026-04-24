@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "bun run build",
   "outputDirectory": "dist/client",
   "functions": {
     "api/ssr.ts": {
-      "runtime": "nodejs",
+      "runtime": "nodejs20.x",
       "includeFiles": "dist/server/**"
     }
   },
