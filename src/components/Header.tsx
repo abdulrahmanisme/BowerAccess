@@ -15,12 +15,12 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+      <div className="mx-auto flex h-20 max-w-5xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <img
             src="/bower-logo.png"
             alt="Bower logo"
-            className="h-10 w-auto object-contain"
+            className="h-17 w-auto object-contain"
             loading="lazy"
           />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
