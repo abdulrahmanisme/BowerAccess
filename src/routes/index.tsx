@@ -185,7 +185,7 @@ export default function IndexPage() {
       eventSource: "home_card",
     });
 
-    setTimeout(() => setFeedbackId(id), 2000);
+
 
     window.open(targetLink, "_blank", "noopener,noreferrer");
   };
@@ -354,6 +354,7 @@ export default function IndexPage() {
                         onViewed={(_, durationMs) => {
                           void handleItemViewed(item, durationMs);
                         }}
+                        onClose={(id) => setFeedbackId(id)}
                       />
                     </div>
                   ))}

@@ -66,9 +66,10 @@ interface OpportunityCardProps {
   opportunity: BulletinItem;
   onGetAccess: (id: string) => void;
   onViewed?: (id: string, durationMs: number) => void;
+  onClose?: (id: string) => void;
 }
 
-export function OpportunityCard({ opportunity, onGetAccess, onViewed }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }: OpportunityCardProps) {
   const [open, setOpen] = useState(false);
   const hasAction = Boolean(opportunity.link);
   const bannerCrop = getBannerCrop(opportunity.bannerCrop);
@@ -163,7 +164,10 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed }: Opportun
         </CardFooter>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) onClose?.(opportunity.id);
+      }}>
         <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="pr-6 font-display text-xl">{opportunity.title}</DialogTitle>
