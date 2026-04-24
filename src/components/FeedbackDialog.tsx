@@ -71,8 +71,12 @@ export function FeedbackDialog({ open, onOpenChange, opportunityId }: FeedbackDi
   const isSubmitDisabled = isOtherSelected && otherReasonTrimmed.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetDialogState(); }}>
-      <DialogContent className="sm:max-w-sm">
+    <Dialog open={open} onOpenChange={() => { /* Prevent closing from outside/escape */ }}>
+      <DialogContent 
+        className="sm:max-w-sm [&>button]:hidden" 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="font-display">Was this useful?</DialogTitle>
           <DialogDescription>Your feedback helps us curate better opportunities.</DialogDescription>

@@ -114,8 +114,20 @@ export default function IndexPage() {
   const [opportunities, setOpportunities] = useState<Tables<"opportunities">[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  const [lastAppliedId, setLastAppliedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest_date");
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (lastAppliedId) {
+        setFeedbackId(lastAppliedId);
+        setLastAppliedId(null);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [lastAppliedId]);
 
   usePageTracking(user?.id || null, "/");
 
@@ -137,6 +149,15 @@ export default function IndexPage() {
     };
     load();
   }, []);
+
+  const handleCardClose = (id: string) => {
+    // If we were waiting for them to come back from an "Apply" click, 
+    // we clear that since they are now closing the card manually.
+    if (lastAppliedId === id) {
+      setLastAppliedId(null);
+    }
+    setFeedbackId(id);
+  };
 
   const handleGetAccess = async (id: string) => {
     const dbItem = opportunities.find((o) => o.id === id);
@@ -185,7 +206,7 @@ export default function IndexPage() {
       eventSource: "home_card",
     });
 
-
+    setLastAppliedId(id);
 
     window.open(targetLink, "_blank", "noopener,noreferrer");
   };
@@ -354,7 +375,7 @@ export default function IndexPage() {
                         onViewed={(_, durationMs) => {
                           void handleItemViewed(item, durationMs);
                         }}
-                        onClose={(id) => setFeedbackId(id)}
+                        onClose={handleCardClose}
                       />
                     </div>
                   ))}
