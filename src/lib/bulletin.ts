@@ -37,7 +37,7 @@ export const BULLETIN_SECTIONS: BulletinSection[] = [
   {
     category: "funding",
     title: "Capital/Opportunities",
-    subtitle: "Curated capital calls and grant opportunities for founders worth ₹26.3 Crore.",
+    subtitle: "Curated capital calls and grant opportunities for founders worth ₹32.2 Crore.",
   },
   {
     category: "events",
