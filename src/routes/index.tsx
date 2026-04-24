@@ -20,7 +20,7 @@ type CategoryFilter = BulletinItem["category"] | "all";
 type SortMode = "newest_date" | "oldest_date";
 
 const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
-  { value: "all", label: "All opportunities" },
+  { value: "all", label: "All" },
   { value: "funding", label: "Capital and opportunities" },
   { value: "events", label: "Events" },
   { value: "news", label: "Ecosystem News" },
@@ -35,6 +35,9 @@ function toTimestamp(value?: string | null): number | null {
 }
 
 function getOpportunitySortTimestamp(opp: Tables<"opportunities">): number {
+  if (opp.category === "funding") {
+    return toTimestamp(opp.deadline) ?? toTimestamp(opp.created_at) ?? 0;
+  }
   const endOrDeadline = toTimestamp(opp.end_date) ?? toTimestamp(opp.deadline);
   const startDate = toTimestamp(opp.start_date);
   const createdAt = toTimestamp(opp.created_at);
@@ -76,7 +79,12 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
   const legacyDeadline = formatOpportunityDate(opp.deadline);
 
   let dateLabel: string | undefined;
-  if (startDate && endDate) {
+  if (opp.category === "funding") {
+    // Funding: only show deadline
+    if (legacyDeadline) {
+      dateLabel = `Deadline: ${legacyDeadline}`;
+    }
+  } else if (startDate && endDate) {
     dateLabel = `${startDate} - ${endDate}`;
   } else if (startDate) {
     dateLabel = `Starts: ${startDate}`;
