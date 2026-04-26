@@ -19,6 +19,7 @@ interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   opportunityId: string;
+  onFeedbackSubmitted?: (opportunityId: string) => void;
 }
 
 const reasons = [
@@ -28,7 +29,7 @@ const reasons = [
   "Other",
 ];
 
-export function FeedbackDialog({ open, onOpenChange, opportunityId }: FeedbackDialogProps) {
+export function FeedbackDialog({ open, onOpenChange, opportunityId, onFeedbackSubmitted }: FeedbackDialogProps) {
   const { user } = useAuth();
   const [step, setStep] = useState<"initial" | "reason">("initial");
   const [reason, setReason] = useState(reasons[0]);
@@ -61,6 +62,7 @@ export function FeedbackDialog({ open, onOpenChange, opportunityId }: FeedbackDi
       pagePath: "/",
       eventSource: "feedback_dialog",
     });
+    onFeedbackSubmitted?.(opportunityId);
     toast.success("Thanks for your feedback!");
     onOpenChange(false);
     resetDialogState();

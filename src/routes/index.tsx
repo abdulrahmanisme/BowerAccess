@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTracking } from "@/hooks/use-page-tracking";
 import { trackEvent } from "@/lib/tracking";
+import { useFeedbackMemory } from "@/hooks/use-feedback-memory";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { Button } from "@/components/ui/button";
@@ -118,17 +119,20 @@ export default function IndexPage() {
   const [lastAppliedId, setLastAppliedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("oldest_date");
+  const { hasFeedback, markFeedback } = useFeedbackMemory(user?.id ?? null);
 
   useEffect(() => {
     const handleFocus = () => {
       if (lastAppliedId) {
-        setFeedbackId(lastAppliedId);
+        if (!hasFeedback(lastAppliedId)) {
+          setFeedbackId(lastAppliedId);
+        }
         setLastAppliedId(null);
       }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [lastAppliedId]);
+  }, [lastAppliedId, hasFeedback]);
 
   usePageTracking(user?.id || null, "/");
 
@@ -157,7 +161,10 @@ export default function IndexPage() {
     if (lastAppliedId === id) {
       setLastAppliedId(null);
     }
-    setFeedbackId(id);
+    // Only prompt feedback once per opportunity per user.
+    if (!hasFeedback(id)) {
+      setFeedbackId(id);
+    }
   };
 
   const handleGetAccess = (id: string) => {
@@ -395,6 +402,7 @@ export default function IndexPage() {
           open={!!feedbackId}
           onOpenChange={(v) => { if (!v) setFeedbackId(null); }}
           opportunityId={feedbackId}
+          onFeedbackSubmitted={(id) => markFeedback(id)}
         />
       )}
     </main>
