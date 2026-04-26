@@ -97,7 +97,13 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
       <Card
         ref={rootRef}
         className="group flex cursor-pointer flex-col border-border/70 bg-card/60 transition-shadow hover:shadow-md"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (isHiring && (!opportunity.jobDescription || !opportunity.jobDescription.trim())) {
+            handleApplyClick();
+          } else {
+            setOpen(true);
+          }
+        }}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
@@ -107,63 +113,86 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
           </div>
         </CardHeader>
         <CardContent className="flex-1">
-          <div className="relative overflow-hidden rounded-md border border-border/70 bg-muted/30">
-            <AspectRatio ratio={4 / 1}>
-              {hasPoster ? (
-                <img
-                  src={opportunity.imageUrl}
-                  alt={`${opportunity.title} banner preview`}
-                  className="h-full w-full object-cover"
-                  style={{
-                    objectPosition: `${bannerCrop.x}% ${bannerCrop.y}%`,
-                    transform: `scale(${bannerCrop.zoom})`,
-                    transformOrigin: `${bannerCrop.x}% ${bannerCrop.y}%`,
-                  }}
-                  loading="lazy"
-                />
-              ) : isPosterOptional && optionalPlaceholder ? (
-                <div className={`relative flex h-full w-full items-center bg-gradient-to-br ${optionalPlaceholder.gradientClass}`}>
-                  <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
-                  <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
-                  <div className="relative flex w-full items-center justify-between px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-foreground/85">
-                        {optionalPlaceholder.title}
-                      </p>
-                      <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                        {isHiring && opportunity.description
-                          ? opportunity.description
-                          : optionalPlaceholder.subtitle}
-                      </p>
-                    </div>
-                    <div className="ml-3 shrink-0 rounded-full border border-border/60 bg-background/75 p-2">
-                      <optionalPlaceholder.Icon className="h-4 w-4 text-foreground/80" />
+          {isHiring && !hasPoster && opportunity.detailBullets && opportunity.detailBullets.length > 0 ? (
+            <div className="relative overflow-hidden rounded-md border border-border/70 bg-gradient-to-br from-hiring/25 via-secondary/50 to-card">
+              <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
+              <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
+              <div className="relative px-4 py-3 space-y-1.5">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {opportunity.description}
+                </p>
+                <div className="pt-0.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground/80">Details</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[11px] text-muted-foreground">
+                    {opportunity.detailBullets.map((point, idx) => (
+                      <li key={`${opportunity.id}-preview-${idx}`}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="border-t border-border/60 bg-background/70 p-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Tap to open full details.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative overflow-hidden rounded-md border border-border/70 bg-muted/30">
+              <AspectRatio ratio={4 / 1}>
+                {hasPoster ? (
+                  <img
+                    src={opportunity.imageUrl}
+                    alt={`${opportunity.title} banner preview`}
+                    className="h-full w-full object-cover"
+                    style={{
+                      objectPosition: `${bannerCrop.x}% ${bannerCrop.y}%`,
+                      transform: `scale(${bannerCrop.zoom})`,
+                      transformOrigin: `${bannerCrop.x}% ${bannerCrop.y}%`,
+                    }}
+                    loading="lazy"
+                  />
+                ) : isPosterOptional && optionalPlaceholder ? (
+                  <div className={`relative flex h-full w-full items-center bg-gradient-to-br ${optionalPlaceholder.gradientClass}`}>
+                    <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
+                    <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
+                    <div className="relative flex w-full items-center justify-between px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-foreground/85">
+                          {optionalPlaceholder.title}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                          {isHiring && opportunity.description
+                            ? opportunity.description
+                            : optionalPlaceholder.subtitle}
+                        </p>
+                      </div>
+                      <div className="ml-3 shrink-0 rounded-full border border-border/60 bg-background/75 p-2">
+                        <optionalPlaceholder.Icon className="h-4 w-4 text-foreground/80" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                  No poster uploaded
-                </div>
-              )}
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    No poster uploaded
+                  </div>
+                )}
 
-              {hasPoster ? (
-                <>
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-black/10" />
-                  <div className="absolute inset-x-0 bottom-0 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-white">Masked preview</p>
-                    <p className="text-[11px] text-white/80">Tap to reveal full details and poster.</p>
+                {hasPoster ? (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-black/10" />
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-white">Masked preview</p>
+                      <p className="text-[11px] text-white/80">Tap to reveal full details and poster.</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/70 p-2">
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      {isPosterOptional ? "Tap to open full details." : "Poster can be added from admin."}
+                    </p>
                   </div>
-                </>
-              ) : (
-                <div className="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/70 p-2">
-                  <p className="text-[11px] font-medium text-muted-foreground">
-                    {isPosterOptional ? "Tap to open full details." : "Poster can be added from admin."}
-                  </p>
-                </div>
-              )}
-            </AspectRatio>
-          </div>
+                )}
+              </AspectRatio>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-4">
           <span className="text-xs text-muted-foreground">
