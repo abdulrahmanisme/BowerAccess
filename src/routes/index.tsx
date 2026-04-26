@@ -160,7 +160,7 @@ export default function IndexPage() {
     setFeedbackId(id);
   };
 
-  const handleGetAccess = async (id: string) => {
+  const handleGetAccess = (id: string) => {
     const dbItem = opportunities.find((o) => o.id === id);
     const targetLink = dbItem?.external_link;
     const itemCategory = dbItem?.category;
@@ -177,11 +177,18 @@ export default function IndexPage() {
     }
 
     if (!user) {
-      await signInWithGoogle();
+      void signInWithGoogle();
       return;
     }
 
-    await trackEvent({
+    // Open the link SYNCHRONOUSLY inside the user-gesture call stack.
+    // Deferring this after async trackEvent() calls causes browsers to
+    // block the popup because the user-gesture context has expired.
+    setLastAppliedId(id);
+    window.open(targetLink, "_blank", "noopener,noreferrer");
+
+    // Fire-and-forget: analytics tracking should never block navigation.
+    void trackEvent({
       userId: user.id,
       opportunityId: dbItem?.id,
       eventType: "click_get_access",
@@ -194,7 +201,7 @@ export default function IndexPage() {
       eventSource: "home_card",
     });
 
-    await trackEvent({
+    void trackEvent({
       userId: user.id,
       opportunityId: dbItem?.id,
       eventType: "click_apply",
@@ -206,10 +213,6 @@ export default function IndexPage() {
       pagePath: "/",
       eventSource: "home_card",
     });
-
-    setLastAppliedId(id);
-
-    window.open(targetLink, "_blank", "noopener,noreferrer");
   };
 
   const handleItemViewed = async (item: BulletinItem, durationMs: number) => {
