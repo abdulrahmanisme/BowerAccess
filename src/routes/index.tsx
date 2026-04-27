@@ -102,6 +102,8 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     category: (opp.category as BulletinItem["category"]) || "funding",
     status: opp.status,
     dateLabel,
+    startDate: opp.start_date || undefined,
+    endDate: opp.end_date || opp.deadline || undefined,
     link: opp.external_link || undefined,
     imageUrl: opp.poster_url || undefined,
     bannerCrop: parseBannerCrop(opp.poster_banner_crop),
@@ -274,7 +276,7 @@ export default function IndexPage() {
 
   if (isLoading || !user) {
     return (
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
@@ -285,8 +287,8 @@ export default function IndexPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <section className="mb-10 rounded-2xl border border-border/70 bg-gradient-to-br from-card to-secondary/40 p-6 sm:p-8">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      <section className="mb-8 rounded-xl border border-border/70 bg-gradient-to-br from-card to-secondary/40 p-5 sm:mb-10 sm:rounded-2xl sm:p-8">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Bower Access</p>
         <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
           Curated for builders and founders of Bower.
@@ -354,7 +356,7 @@ export default function IndexPage() {
           <p className="mt-1 text-sm">Try a different category or switch sorting to review other items.</p>
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-8 sm:space-y-10">
           {BULLETIN_SECTIONS.map((section) => {
             const sectionItems = sortItems(
               filteredItems.filter((item) => item.category === section.category)

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { useItemView } from "@/hooks/use-item-view";
 import { useState } from "react";
+import { isBefore, isTomorrow, startOfDay, parseISO, isValid } from "date-fns";
+import { toast } from "sonner";
 import { Briefcase, Calendar, Clock, ExternalLink, Lightbulb, MapPin, Newspaper } from "lucide-react";
 import { isPosterOptionalForCategory, type BulletinItem } from "@/lib/bulletin";
 
@@ -75,6 +76,28 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
   const hasAction = Boolean(opportunity.link);
   const isHiring = opportunity.category === "hiring";
 
+  let isExpired = false;
+  let isTom = false;
+
+  const expiryDateString = opportunity.endDate || opportunity.startDate;
+  if (expiryDateString) {
+    const expiryDate = parseISO(expiryDateString);
+    if (isValid(expiryDate)) {
+      const today = startOfDay(new Date());
+      if (isBefore(startOfDay(expiryDate), today)) {
+        isExpired = true;
+      }
+    }
+  }
+
+  const upcomingDateString = opportunity.startDate || opportunity.endDate;
+  if (upcomingDateString && !isExpired) {
+    const upcomingDate = parseISO(upcomingDateString);
+    if (isValid(upcomingDate) && isTomorrow(upcomingDate)) {
+      isTom = true;
+    }
+  }
+
   const handleApplyClick = () => {
     if (isHiring && opportunity.jobDescription) {
       setJdOpen(true);
@@ -96,8 +119,15 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
     <>
       <Card
         ref={rootRef}
-        className="group flex cursor-pointer flex-col border-border/70 bg-card/60 transition-shadow hover:shadow-md"
+        className={`group flex flex-col transition-shadow hover:shadow-md ${isExpired
+            ? "cursor-not-allowed opacity-60 grayscale border-border/40 bg-card/40"
+            : `cursor-pointer ${isTom ? "border-red-500 bg-red-500/5 ring-1 ring-red-500/50 shadow-md" : "border-border/70 bg-card/60"}`
+          }`}
         onClick={() => {
+          if (isExpired) {
+            toast.info("This opportunity has expired and is no longer available.");
+            return;
+          }
           if (isHiring && (!opportunity.jobDescription || !opportunity.jobDescription.trim())) {
             handleApplyClick();
           } else {
@@ -105,14 +135,14 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
           }
         }}
       >
-        <CardHeader className="pb-2">
+        <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="font-display text-lg leading-snug text-balance">
+            <CardTitle className="font-display text-base leading-snug text-balance sm:text-lg">
               {opportunity.title}
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="flex-1">
+        <CardContent className="flex-1 p-4 pt-0 sm:p-6 sm:pt-0">
           {isHiring && !hasPoster && opportunity.detailBullets && opportunity.detailBullets.length > 0 ? (
             <div className="relative overflow-hidden rounded-md border border-border/70 bg-gradient-to-br from-hiring/25 via-secondary/50 to-card">
               <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
@@ -135,72 +165,74 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
               </div>
             </div>
           ) : (
-            <div className="relative overflow-hidden rounded-md border border-border/70 bg-muted/30">
-              <AspectRatio ratio={4 / 1}>
-                {hasPoster ? (
-                  <img
-                    src={opportunity.imageUrl}
-                    alt={`${opportunity.title} banner preview`}
-                    className="h-full w-full object-cover"
-                    style={{
-                      objectPosition: `${bannerCrop.x}% ${bannerCrop.y}%`,
-                      transform: `scale(${bannerCrop.zoom})`,
-                      transformOrigin: `${bannerCrop.x}% ${bannerCrop.y}%`,
-                    }}
-                    loading="lazy"
-                  />
-                ) : isPosterOptional && optionalPlaceholder ? (
-                  <div className={`relative flex h-full w-full items-center bg-gradient-to-br ${optionalPlaceholder.gradientClass}`}>
-                    <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
-                    <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
-                    <div className="relative flex w-full items-center justify-between px-4 py-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-foreground/85">
-                          {optionalPlaceholder.title}
-                        </p>
-                        <p className="mt-1 truncate text-[11px] text-muted-foreground">
-                          {isHiring && opportunity.description
-                            ? opportunity.description
-                            : optionalPlaceholder.subtitle}
-                        </p>
-                      </div>
-                      <div className="ml-3 shrink-0 rounded-full border border-border/60 bg-background/75 p-2">
-                        <optionalPlaceholder.Icon className="h-4 w-4 text-foreground/80" />
-                      </div>
+            <div className="relative w-full overflow-hidden rounded-md border border-border/70 bg-muted/30 aspect-[2/1] sm:aspect-[4/1]">
+              {hasPoster ? (
+                <img
+                  src={opportunity.imageUrl}
+                  alt={`${opportunity.title} banner preview`}
+                  className="h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${bannerCrop.x}% ${bannerCrop.y}%`,
+                    transform: `scale(${bannerCrop.zoom})`,
+                    transformOrigin: `${bannerCrop.x}% ${bannerCrop.y}%`,
+                  }}
+                  loading="lazy"
+                />
+              ) : isPosterOptional && optionalPlaceholder ? (
+                <div className={`relative flex h-full w-full items-center bg-gradient-to-br ${optionalPlaceholder.gradientClass}`}>
+                  <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-background/25 blur-xl" />
+                  <div className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-background/20 blur-2xl" />
+                  <div className="relative flex w-full items-center justify-between px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-foreground/85">
+                        {optionalPlaceholder.title}
+                      </p>
+                      <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                        {isHiring && opportunity.description
+                          ? opportunity.description
+                          : optionalPlaceholder.subtitle}
+                      </p>
+                    </div>
+                    <div className="ml-3 shrink-0 rounded-full border border-border/60 bg-background/75 p-2">
+                      <optionalPlaceholder.Icon className="h-4 w-4 text-foreground/80" />
                     </div>
                   </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    No poster uploaded
-                  </div>
-                )}
+                </div>
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                  No poster uploaded
+                </div>
+              )}
 
-                {hasPoster ? (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-black/10" />
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-white">Masked preview</p>
-                      <p className="text-[11px] text-white/80">Tap to reveal full details and poster.</p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/70 p-2">
-                    <p className="text-[11px] font-medium text-muted-foreground">
-                      {isPosterOptional ? "Tap to open full details." : "Poster can be added from admin."}
-                    </p>
+              {hasPoster ? (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-black/10" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-white">Masked preview</p>
+                    <p className="text-[11px] text-white/80">Tap to reveal full details and poster.</p>
                   </div>
-                )}
-              </AspectRatio>
+                </>
+              ) : (
+                <div className="absolute inset-x-0 bottom-0 border-t border-border/60 bg-background/70 p-2">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    {isPosterOptional ? "Tap to open full details." : "Poster can be added from admin."}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex items-center justify-between border-t pt-4">
-          <span className="text-xs text-muted-foreground">
+        <CardFooter className="flex flex-col items-start gap-3 border-t p-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 sm:pt-4">
+          <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {(opportunity.category === "funding" || opportunity.category === "events") && opportunity.dateLabel
               ? opportunity.dateLabel
               : ""}
+            {isTom && <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-500">Tomorrow</span>}
+            {isExpired && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Expired</span>}
           </span>
-          <span className="text-xs font-medium text-primary">Click to view and apply</span>
+          <span className={`text-xs font-medium ${isExpired ? "text-muted-foreground" : "text-primary"}`}>
+            {isExpired ? "No longer available" : "Click to view and apply"}
+          </span>
         </CardFooter>
       </Card>
 
@@ -304,7 +336,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
               <Button variant="outline" onClick={() => setJdOpen(false)}>
                 Go Back
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   setJdOpen(false);
                   onGetAccess(opportunity.id);

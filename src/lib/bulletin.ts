@@ -18,6 +18,8 @@ export interface BulletinItem {
   category: BulletinCategory;
   status: "draft" | "published" | "archived";
   dateLabel?: string;
+  startDate?: string;
+  endDate?: string;
   timeLabel?: string;
   venue?: string;
   amountLabel?: string;
