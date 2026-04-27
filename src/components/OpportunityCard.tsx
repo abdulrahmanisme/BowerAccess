@@ -165,7 +165,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
               </div>
             </div>
           ) : (
-            <div className="relative w-full overflow-hidden rounded-md border border-border/70 bg-muted/30 aspect-[2/1] sm:aspect-[4/1]">
+            <div className="relative w-full overflow-hidden rounded-md border border-border/70 bg-muted/30 aspect-[4/1]">
               {hasPoster ? (
                 <img
                   src={opportunity.imageUrl}
