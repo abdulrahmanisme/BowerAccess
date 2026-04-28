@@ -8,6 +8,7 @@ export interface TrackEventInput {
   userId: string;
   eventType: EventType;
   opportunityId?: string;
+  linkUrl?: string;
   metadata?: Json;
   durationMs?: number;
   pagePath?: string;
@@ -43,6 +44,7 @@ export async function trackEvent(input: TrackEventInput) {
     page_path: pagePath ?? (typeof window !== "undefined" ? window.location.pathname : null),
     session_id: sessionId ?? getOrCreateSessionId(),
     event_source: eventSource ?? "ui",
+    link_url: input.linkUrl ?? undefined,
     metadata: metadata ?? {},
   };
 
@@ -54,20 +56,33 @@ export async function trackEvent(input: TrackEventInput) {
     }
   }
 
-  // Keep legacy admin analytics views populated while PostHog is the primary sink.
-  const { error: dbError } = await supabase.from("engagement_events").insert({
-    user_id: userId,
-    event_type: eventType,
-    opportunity_id: opportunityId ?? null,
-    duration_ms: durationMs ?? null,
-    page_path: eventProperties.page_path ?? null,
-    session_id: eventProperties.session_id,
-    event_source: eventProperties.event_source,
-    metadata: metadata ?? {},
-  });
+  const combinedMetadata = input.linkUrl 
+    ? { ...(typeof metadata === "object" && metadata !== null && !Array.isArray(metadata) ? metadata : {}), link_url: input.linkUrl } 
+    : (metadata ?? {});
 
-  if (dbError && import.meta.env.DEV) {
-    console.warn("trackEvent database mirror error", dbError);
+  const ALLOWED_ADMIN_EVENTS = [
+    "item_viewed",
+    "feedback_useful",
+    "feedback_not_useful",
+    "click_get_access"
+  ];
+
+  if (ALLOWED_ADMIN_EVENTS.includes(eventType)) {
+    // Keep legacy admin analytics views populated while PostHog is the primary sink.
+    const { error: dbError } = await supabase.from("engagement_events").insert({
+      user_id: userId,
+      event_type: eventType,
+      opportunity_id: opportunityId ?? null,
+      duration_ms: durationMs ?? null,
+      page_path: eventProperties.page_path ?? null,
+      session_id: eventProperties.session_id,
+      event_source: eventProperties.event_source,
+      metadata: combinedMetadata,
+    });
+
+    if (dbError && import.meta.env.DEV) {
+      console.warn("trackEvent database mirror error", dbError);
+    }
   }
 }
 

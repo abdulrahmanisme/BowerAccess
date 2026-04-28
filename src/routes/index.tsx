@@ -201,19 +201,7 @@ export default function IndexPage() {
       userId: user.id,
       opportunityId: dbItem?.id,
       eventType: "click_get_access",
-      metadata: {
-        title: itemTitle,
-        category: itemCategory,
-        source: "db",
-      },
-      pagePath: "/",
-      eventSource: "home_card",
-    });
-
-    void trackEvent({
-      userId: user.id,
-      opportunityId: dbItem?.id,
-      eventType: "click_apply",
+      linkUrl: targetLink,
       metadata: {
         title: itemTitle,
         category: itemCategory,
