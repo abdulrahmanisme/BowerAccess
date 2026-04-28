@@ -11,14 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO, isBefore, startOfDay } from "date-fns";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { BulletinItem } from "@/lib/bulletin";
 import { BULLETIN_SECTIONS } from "@/lib/bulletin";
 
 type CategoryFilter = BulletinItem["category"] | "all";
-type SortMode = "newest_date" | "oldest_date";
 
 const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -120,7 +119,6 @@ export default function IndexPage() {
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [lastAppliedId, setLastAppliedId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("oldest_date");
   const { hasFeedback, markFeedback } = useFeedbackMemory(user?.id ?? null);
 
   useEffect(() => {
@@ -246,13 +244,42 @@ export default function IndexPage() {
   });
   const selectedFilterLabel = HOME_CATEGORY_FILTERS.find((filter) => filter.value === categoryFilter)?.label || "All opportunities";
 
+  const checkExpired = (item: BulletinItem) => {
+    const expiryDateString = item.endDate || item.startDate;
+    if (!expiryDateString) return false;
+    const expiryDate = parseISO(expiryDateString);
+    if (!isValid(expiryDate)) return false;
+    return isBefore(startOfDay(expiryDate), startOfDay(new Date()));
+  };
+
   const sortItems = (items: BulletinItem[]) => {
+    const todayMs = startOfDay(new Date()).getTime();
+
     return [...items].sort((a, b) => {
+      const aExpired = checkExpired(a);
+      const bExpired = checkExpired(b);
+
+      if (aExpired && !bExpired) return 1;
+      if (!aExpired && bExpired) return -1;
+
       const aTimestamp = sortTimestampById.get(a.id) ?? 0;
       const bTimestamp = sortTimestampById.get(b.id) ?? 0;
-      const byDate = sortMode === "newest_date"
-        ? bTimestamp - aTimestamp
-        : aTimestamp - bTimestamp;
+
+      if (!aExpired && !bExpired) {
+        const aHasFutureDate = Boolean((a.startDate || a.endDate) && aTimestamp >= todayMs);
+        const bHasFutureDate = Boolean((b.startDate || b.endDate) && bTimestamp >= todayMs);
+
+        if (aHasFutureDate && !bHasFutureDate) return -1;
+        if (!aHasFutureDate && bHasFutureDate) return 1;
+
+        if (aHasFutureDate && bHasFutureDate) {
+          if (aTimestamp !== bTimestamp) {
+            return aTimestamp - bTimestamp;
+          }
+        }
+      }
+
+      const byDate = aTimestamp - bTimestamp;
 
       if (byDate !== 0) {
         return byDate;
@@ -305,18 +332,6 @@ export default function IndexPage() {
             })}
           </div>
 
-          <div className="w-full sm:w-64">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sort by</p>
-            <Select value={sortMode} onValueChange={(value) => setSortMode(value as SortMode)}>
-              <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="Sort opportunities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest_date">Newest date first</SelectItem>
-                <SelectItem value="oldest_date">Oldest date first</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </section>
 
