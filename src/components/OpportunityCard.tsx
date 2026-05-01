@@ -125,12 +125,12 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
       <Card
         ref={rootRef}
         className={`group flex flex-col transition-shadow hover:shadow-md ${isExpired
-            ? "cursor-not-allowed opacity-60 grayscale border-border/40 bg-card/40"
-            : `cursor-pointer ${isTodayEvent 
-                ? "border-purple-500 bg-purple-500/5 ring-1 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] dark:shadow-[0_0_15px_rgba(168,85,247,0.15)]" 
-                : isTom 
-                  ? "border-red-500 bg-red-500/5 ring-1 ring-red-500/50 shadow-md" 
-                  : "border-border/70 bg-card/60"}`
+          ? "cursor-not-allowed opacity-60 grayscale border-border/40 bg-card/40"
+          : `cursor-pointer ${isTodayEvent
+            ? "border-purple-500 bg-purple-500/5 ring-1 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] dark:shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+            : isTom
+              ? "border-red-500 bg-red-500/5 ring-1 ring-red-500/50 shadow-md"
+              : "border-border/70 bg-card/60"}`
           }`}
         onClick={() => {
           if (isExpired) {
@@ -242,7 +242,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75"></span>
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-purple-500"></span>
                 </span>
-                Happening Today
+                Happening Now
               </span>
             )}
             {isTom && <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-500">Tomorrow</span>}
