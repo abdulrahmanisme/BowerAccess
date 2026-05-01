@@ -162,7 +162,6 @@ function OverviewTab({ isActive }: { isActive: boolean }) {
     activeUsers7d: 0,
     totalViews: 0,
     totalClicks: 0,
-    totalActions: 0,
     avgPageTimeMs: 0,
   });
 
@@ -171,12 +170,11 @@ function OverviewTab({ isActive }: { isActive: boolean }) {
 
     const load = async () => {
       const since30 = new Date(Date.now() - 30 * 86400000).toISOString();
-      const [profiles, visits7d, views, clicks, totalActions, pageTimeEvents, uniqueVisitors] = await Promise.all([
+      const [profiles, visits7d, views, clicks, pageTimeEvents, uniqueVisitors] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("visits").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from("engagement_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", since30),
         supabase.from("engagement_events").select("id", { count: "exact", head: true }).eq("event_type", "click_get_access").gte("created_at", since30),
-        supabase.from("engagement_events").select("id", { count: "exact", head: true }),
         supabase.from("engagement_events").select("duration_ms").eq("event_type", "page_view").not("duration_ms", "is", null).gte("created_at", since30).limit(500),
         supabase.rpc("count_unique_visitors"),
       ]);
@@ -191,7 +189,6 @@ function OverviewTab({ isActive }: { isActive: boolean }) {
         activeUsers7d: visits7d.count || 0,
         totalViews: views.count || 0,
         totalClicks: clicks.count || 0,
-        totalActions: totalActions.count || 0,
         avgPageTimeMs,
       });
     };
@@ -204,7 +201,6 @@ function OverviewTab({ isActive }: { isActive: boolean }) {
     { label: "Active (7d)", value: metrics.activeUsers7d, icon: TrendingUp },
     { label: "Page Views", value: metrics.totalViews, icon: Eye },
     { label: "Get Access Clicks", value: metrics.totalClicks, icon: MousePointerClick },
-    { label: "Total Actions", value: metrics.totalActions, icon: MousePointerClick },
     { label: "Avg Time on Page", value: `${Math.round(metrics.avgPageTimeMs / 1000)}s`, icon: Timer },
   ];
 

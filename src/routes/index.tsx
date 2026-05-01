@@ -299,7 +299,8 @@ export default function IndexPage() {
         }
       }
 
-      const byDate = aTimestamp - bTimestamp;
+      // For items without future dates (news, something_new), sort newest first based on created_at
+      const byDate = bTimestamp - aTimestamp;
 
       if (byDate !== 0) {
         return byDate;
