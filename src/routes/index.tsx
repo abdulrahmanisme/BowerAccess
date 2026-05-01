@@ -21,7 +21,7 @@ type CategoryFilter = BulletinItem["category"] | "all";
 
 const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "funding", label: "Capital and opportunities" },
+  { value: "funding", label: "Capital and Opportunities" },
   { value: "events", label: "Events" },
   { value: "news", label: "Ecosystem News" },
   { value: "hiring", label: "Hiring - VC / PE Cohort" },
