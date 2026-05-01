@@ -195,13 +195,20 @@ function OverviewTab({ isActive }: { isActive: boolean }) {
     load();
   }, [isActive]);
 
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.round(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   const cards = [
     { label: "Total Users", value: metrics.totalUsers, icon: Users },
     { label: "Unique Viewers", value: metrics.totalViewers, icon: Eye },
     { label: "Active (7d)", value: metrics.activeUsers7d, icon: TrendingUp },
     { label: "Page Views", value: metrics.totalViews, icon: Eye },
     { label: "Get Access Clicks", value: metrics.totalClicks, icon: MousePointerClick },
-    { label: "Avg Time on Page", value: `${Math.round(metrics.avgPageTimeMs / 1000)}s`, icon: Timer },
+    { label: "Avg Time on Page", value: formatTime(metrics.avgPageTimeMs), icon: Timer },
   ];
 
   return (
