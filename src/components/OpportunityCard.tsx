@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { useItemView } from "@/hooks/use-item-view";
 import { useState } from "react";
-import { isBefore, isTomorrow, startOfDay, parseISO, isValid } from "date-fns";
+import { isBefore, isTomorrow, isToday, startOfDay, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 import { Briefcase, Calendar, Clock, ExternalLink, Lightbulb, MapPin, Newspaper } from "lucide-react";
 import { isPosterOptionalForCategory, type BulletinItem } from "@/lib/bulletin";
@@ -78,6 +78,7 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
 
   let isExpired = false;
   let isTom = false;
+  let isTodayEvent = false;
 
   const expiryDateString = opportunity.endDate || opportunity.startDate;
   if (expiryDateString) {
@@ -90,13 +91,17 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
     }
   }
 
-  const upcomingDateString = opportunity.startDate || opportunity.endDate;
-  if (upcomingDateString && !isExpired) {
-    const upcomingDate = parseISO(upcomingDateString);
-    if (isValid(upcomingDate) && isTomorrow(upcomingDate)) {
-      isTom = true;
+  const checkDateMatch = (dateStr: string | null | undefined) => {
+    if (!dateStr || isExpired) return;
+    const dateObj = parseISO(dateStr);
+    if (isValid(dateObj)) {
+      if (isTomorrow(dateObj)) isTom = true;
+      if (isToday(dateObj)) isTodayEvent = true;
     }
-  }
+  };
+
+  checkDateMatch(opportunity.startDate);
+  checkDateMatch(opportunity.endDate);
 
   const handleApplyClick = () => {
     if (isHiring && opportunity.jobDescription) {
@@ -121,7 +126,11 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
         ref={rootRef}
         className={`group flex flex-col transition-shadow hover:shadow-md ${isExpired
             ? "cursor-not-allowed opacity-60 grayscale border-border/40 bg-card/40"
-            : `cursor-pointer ${isTom ? "border-red-500 bg-red-500/5 ring-1 ring-red-500/50 shadow-md" : "border-border/70 bg-card/60"}`
+            : `cursor-pointer ${isTodayEvent 
+                ? "border-purple-500 bg-purple-500/5 ring-1 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)] dark:shadow-[0_0_15px_rgba(168,85,247,0.15)]" 
+                : isTom 
+                  ? "border-red-500 bg-red-500/5 ring-1 ring-red-500/50 shadow-md" 
+                  : "border-border/70 bg-card/60"}`
           }`}
         onClick={() => {
           if (isExpired) {
@@ -227,6 +236,15 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
             {(opportunity.category === "funding" || opportunity.category === "events") && opportunity.dateLabel
               ? opportunity.dateLabel
               : ""}
+            {isTodayEvent && (
+              <span className="flex items-center gap-1.5 rounded bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider border border-purple-500/20 shadow-sm">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-purple-500"></span>
+                </span>
+                Happening Today
+              </span>
+            )}
             {isTom && <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-500">Tomorrow</span>}
             {isExpired && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Expired</span>}
           </span>

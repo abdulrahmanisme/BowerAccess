@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, isValid, parseISO, isBefore, startOfDay } from "date-fns";
+import { format, isValid, parseISO, isBefore, startOfDay, isToday } from "date-fns";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { BulletinItem } from "@/lib/bulletin";
@@ -252,6 +252,20 @@ export default function IndexPage() {
     return isBefore(startOfDay(expiryDate), startOfDay(new Date()));
   };
 
+  const checkIsToday = (item: BulletinItem) => {
+    if (checkExpired(item)) return false;
+    let today = false;
+    if (item.startDate) {
+      const d = parseISO(item.startDate);
+      if (isValid(d) && isToday(d)) today = true;
+    }
+    if (item.endDate) {
+      const d = parseISO(item.endDate);
+      if (isValid(d) && isToday(d)) today = true;
+    }
+    return today;
+  };
+
   const sortItems = (items: BulletinItem[]) => {
     const todayMs = startOfDay(new Date()).getTime();
 
@@ -261,6 +275,12 @@ export default function IndexPage() {
 
       if (aExpired && !bExpired) return 1;
       if (!aExpired && bExpired) return -1;
+
+      const aToday = checkIsToday(a);
+      const bToday = checkIsToday(b);
+
+      if (aToday && !bToday) return -1;
+      if (!aToday && bToday) return 1;
 
       const aTimestamp = sortTimestampById.get(a.id) ?? 0;
       const bTimestamp = sortTimestampById.get(b.id) ?? 0;
@@ -309,7 +329,7 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers opportunities dated between 25 April – 10 May. Scan fast, act faster.
+          This edition covers opportunities dated between 2 May – 17 May. Scan fast, act faster.
         </p>
         <div className="mt-5 space-y-3">
           <div className="flex flex-wrap gap-2">
