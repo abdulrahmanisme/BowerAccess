@@ -2,12 +2,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { useUserAccess } from "@/hooks/useUserAccess";
 import { usePageTracking } from "@/hooks/use-page-tracking";
 import { trackEvent } from "@/lib/tracking";
 import { useFeedbackMemory } from "@/hooks/use-feedback-memory";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { LockedOpportunityCard } from "@/components/LockedOpportunityCard";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,8 +16,6 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { BulletinItem } from "@/lib/bulletin";
 import { BULLETIN_SECTIONS } from "@/lib/bulletin";
-
-const FREE_SLOTS_PER_SECTION = 2;
 
 type CategoryFilter = BulletinItem["category"] | "all";
 
@@ -118,7 +114,6 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
 export default function IndexPage() {
   const { user, signInWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { isPremium, isLoading: accessLoading } = useUserAccess();
   const [opportunities, setOpportunities] = useState<Tables<"opportunities">[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
@@ -315,7 +310,7 @@ export default function IndexPage() {
     });
   };
 
-  if (isLoading || accessLoading || !user) {
+  if (isLoading || !user) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         <div className="space-y-3">
@@ -406,29 +401,21 @@ export default function IndexPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {sectionItems.map((item, idx) => {
-                    const isLocked = !isPremium && idx >= FREE_SLOTS_PER_SECTION;
-
-                    return (
+                  {sectionItems.map((item, idx) => (
                     <div key={item.id} className="grid gap-3 sm:grid-cols-[42px_1fr] sm:items-start">
                       <div className="hidden h-10 w-10 items-center justify-center rounded-full border bg-muted/50 text-sm font-semibold text-foreground sm:flex">
                         {idx + 1}
                       </div>
-                      {isLocked ? (
-                        <LockedOpportunityCard opportunity={item} />
-                      ) : (
-                        <OpportunityCard
-                          opportunity={item}
-                          onGetAccess={handleGetAccess}
-                          onViewed={(_, durationMs) => {
-                            void handleItemViewed(item, durationMs);
-                          }}
-                          onClose={handleCardClose}
-                        />
-                      )}
+                      <OpportunityCard
+                        opportunity={item}
+                        onGetAccess={handleGetAccess}
+                        onViewed={(_, durationMs) => {
+                          void handleItemViewed(item, durationMs);
+                        }}
+                        onClose={handleCardClose}
+                      />
                     </div>
-                    );
-                  })}
+                  ))}
                 </div>
               </section>
             );

@@ -30,7 +30,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus, Users, Eye, MousePointerClick, TrendingUp, Archive, Timer, ExternalLink, Shield } from "lucide-react";
+import { Plus, Users, Eye, MousePointerClick, TrendingUp, Archive, Timer, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { BOWER_SEED_ITEMS } from "@/lib/bower-seed";
 import { isPosterOptionalForCategory, type BannerCrop } from "@/lib/bulletin";
@@ -96,7 +96,6 @@ export default function AdminDashboardPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="opportunities">Content</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="access">User Access</TabsTrigger>
           <TabsTrigger value="feedback">Feedback</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
         </TabsList>
@@ -105,7 +104,6 @@ export default function AdminDashboardPage() {
         <TabsContent value="overview"><OverviewTab isActive={activeTab === "overview"} /></TabsContent>
         <TabsContent value="opportunities"><OpportunitiesTab isActive={activeTab === "opportunities"} /></TabsContent>
         <TabsContent value="users"><UsersTab isActive={activeTab === "users"} /></TabsContent>
-        <TabsContent value="access"><UserAccessTab isActive={activeTab === "access"} /></TabsContent>
         <TabsContent value="feedback"><FeedbackTab isActive={activeTab === "feedback"} /></TabsContent>
         <TabsContent value="events"><EventsTab isActive={activeTab === "events"} /></TabsContent>
       </Tabs>
@@ -977,203 +975,6 @@ function UsersTab({ isActive }: { isActive: boolean }) {
         </TableBody>
       </Table>
     </Card>
-  );
-}
-
-function UserAccessTab({ isActive }: { isActive: boolean }) {
-  const { user } = useAuth();
-  const [email, setEmail] = useState("");
-  const [granting, setGranting] = useState(false);
-  const [inlineMessage, setInlineMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [premiumUsers, setPremiumUsers] = useState<{ email: string | null; full_name: string | null; created_at: string; user_id: string }[]>([]);
-
-  const loadPremiumUsers = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("email, full_name, created_at, user_id")
-      .eq("is_premium", true)
-      .order("created_at", { ascending: false });
-
-    setPremiumUsers(data || []);
-  };
-
-  useEffect(() => {
-    if (!isActive) return;
-    loadPremiumUsers();
-  }, [isActive]);
-
-  const handleGrant = async () => {
-    if (!user) return;
-
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) return;
-
-    setGranting(true);
-    setInlineMessage(null);
-
-    try {
-      const { data: profile, error: lookupError } = await supabase
-        .from("profiles")
-        .select("user_id, email")
-        .eq("email", trimmedEmail)
-        .maybeSingle();
-
-      if (lookupError) {
-        setInlineMessage({ type: "error", text: lookupError.message });
-        return;
-      }
-
-      if (!profile) {
-        setInlineMessage({ type: "error", text: "No account found with that email address." });
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ is_premium: true })
-        .eq("user_id", profile.user_id);
-
-      if (updateError) {
-        setInlineMessage({ type: "error", text: updateError.message });
-        return;
-      }
-
-      void trackEvent({
-        userId: user.id,
-        eventType: "click_admin_action",
-        pagePath: "/admin",
-        eventSource: "admin_access",
-        metadata: { action: "grant_premium", target_email: trimmedEmail },
-      });
-
-      setInlineMessage({ type: "success", text: "Premium access granted." });
-      setEmail("");
-      await loadPremiumUsers();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setInlineMessage({ type: "error", text: message });
-    } finally {
-      setGranting(false);
-    }
-  };
-
-  const handleRevoke = async (targetUserId: string, targetEmail: string | null) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_premium: false })
-        .eq("user_id", targetUserId);
-
-      if (error) {
-        toast.error(`Could not revoke: ${error.message}`);
-        return;
-      }
-
-      void trackEvent({
-        userId: user.id,
-        eventType: "click_admin_action",
-        pagePath: "/admin",
-        eventSource: "admin_access",
-        metadata: { action: "revoke_premium", target_email: targetEmail || targetUserId },
-      });
-
-      toast.success("Premium access revoked.");
-      await loadPremiumUsers();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Could not revoke: ${message}`);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="h-4 w-4" />
-            Grant Premium Access
-          </CardTitle>
-          <CardDescription>
-            Manually grant full bulletin access to a user by their email address.
-            Users with <code className="rounded bg-muted px-1 py-0.5 text-xs">@bowerschool.com</code> emails
-            receive premium automatically on sign-up.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="flex-1">
-              <Label htmlFor="premium-email" className="sr-only">User email address</Label>
-              <Input
-                id="premium-email"
-                type="email"
-                placeholder="User email address"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setInlineMessage(null); }}
-                onKeyDown={(e) => { if (e.key === "Enter") handleGrant(); }}
-              />
-            </div>
-            <Button onClick={handleGrant} disabled={granting || !email.trim()}>
-              {granting ? "Granting..." : "Grant Premium"}
-            </Button>
-          </div>
-
-          {inlineMessage && (
-            <p className={`text-sm ${inlineMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-              {inlineMessage.text}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Premium Users</CardTitle>
-          <CardDescription>
-            {premiumUsers.length} user{premiumUsers.length !== 1 ? "s" : ""} with premium access.
-          </CardDescription>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {premiumUsers.map((u) => (
-              <TableRow key={u.user_id}>
-                <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{u.email || "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {format(new Date(u.created_at), "MMM d, yyyy")}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleRevoke(u.user_id, u.email)}
-                  >
-                    Revoke
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {premiumUsers.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                  No premium users yet
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-    </div>
   );
 }
 
