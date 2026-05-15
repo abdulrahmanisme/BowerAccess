@@ -159,7 +159,7 @@ export default function IndexPage() {
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [showAppConfirmation, setShowAppConfirmation] = useState(false);
   const [hasShownAppConfirmationOnce, setHasShownAppConfirmationOnce] = useState(false);
-  
+
   const { saved, isSaved, save, unsave } = useSavedOpportunities(user?.id ?? null);
   const { pending, confirmApplication, confirmApplicationViaToast, saveForLater, refresh } = usePendingApplications(user?.id ?? null);
 
@@ -303,13 +303,13 @@ export default function IndexPage() {
   const sortTimestampById = new Map(
     opportunities.map((opp) => [opp.id, getOpportunitySortTimestamp(opp)])
   );
-  
+
   const filteredItems = publishedItems.filter((item) => {
     // Apply category filter
     if (categoryFilter !== "all" && item.category !== categoryFilter) {
       return false;
     }
-    
+
     // Apply sector filter
     if (selectedSectors.length > 0) {
       const itemSectors = item.sectors || [];
@@ -318,10 +318,10 @@ export default function IndexPage() {
         return false;
       }
     }
-    
+
     return true;
   });
-  
+
   const selectedFilterLabel = HOME_CATEGORY_FILTERS.find((filter) => filter.value === categoryFilter)?.label || "All opportunities";
 
   const checkExpired = (item: BulletinItem) => {
@@ -410,7 +410,7 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers opportunities dated between 9 May – 24 May. Scan fast, act faster.
+          This edition covers opportunities dated between 16 May – 31 May. Scan fast, act faster.
         </p>
         <div className="mt-8">
           <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4 space-y-4">
@@ -445,7 +445,7 @@ export default function IndexPage() {
                 selectedSectors={selectedSectors}
                 onSectorsChange={(sectors) => {
                   setSelectedSectors(sectors);
-                  
+
                   // Track sector filter change
                   if (user) {
                     void trackEvent({
