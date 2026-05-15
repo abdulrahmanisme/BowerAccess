@@ -139,8 +139,6 @@ export function getUrgencyBadge(level: UrgencyLevel, daysLeft: number | null): s
       return `${daysLeft} Days Left`;
     case "HAPPENING_NOW":
       return "Happening Now";
-    case "NEW":
-      return "New Opportunity";
     case "CLOSED":
       return "Closed";
     case "UPCOMING":
