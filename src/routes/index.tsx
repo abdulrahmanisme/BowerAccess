@@ -86,7 +86,7 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
   if (startDate && endDate) {
     dateLabel = `${startDate} - ${endDate}`;
   } else if (startDate) {
-    dateLabel = `Starts: ${startDate}`;
+    dateLabel = `Ends: ${startDate}`;
   } else if (endDate) {
     dateLabel = `Ends: ${endDate}`;
   } else if (legacyDeadline) {
