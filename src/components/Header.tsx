@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, LayoutDashboard } from "lucide-react";
+import { LogOut, LayoutDashboard, Bookmark } from "lucide-react";
 
 export function Header() {
   const { user, isAdmin, signInWithGoogle, signOut, isLoading } = useAuth();
@@ -34,6 +34,15 @@ export function Header() {
               <Button variant="ghost" size="sm" className="gap-1.5">
                 <LayoutDashboard className="h-4 w-4" />
                 Admin
+              </Button>
+            </Link>
+          )}
+
+          {user && (
+            <Link to="/saved">
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <Bookmark className="h-4 w-4" />
+                Saved
               </Button>
             </Link>
           )}

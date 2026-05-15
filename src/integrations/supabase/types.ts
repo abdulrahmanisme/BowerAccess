@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -61,21 +86,78 @@ export type Database = {
           },
         ]
       }
+      feedback_responses: {
+        Row: {
+          application_status: string
+          category: string
+          confirmation_timestamp: string | null
+          created_at: string | null
+          feedback_duration_ms: number | null
+          feedback_subtype: string | null
+          feedback_text: string | null
+          feedback_type: string
+          id: string
+          metadata: Json | null
+          opportunity_id: string
+          triggered_delay_ms: number | null
+          user_id: string
+        }
+        Insert: {
+          application_status?: string
+          category: string
+          confirmation_timestamp?: string | null
+          created_at?: string | null
+          feedback_duration_ms?: number | null
+          feedback_subtype?: string | null
+          feedback_text?: string | null
+          feedback_type: string
+          id?: string
+          metadata?: Json | null
+          opportunity_id: string
+          triggered_delay_ms?: number | null
+          user_id: string
+        }
+        Update: {
+          application_status?: string
+          category?: string
+          confirmation_timestamp?: string | null
+          created_at?: string | null
+          feedback_duration_ms?: number | null
+          feedback_subtype?: string | null
+          feedback_text?: string | null
+          feedback_type?: string
+          id?: string
+          metadata?: Json | null
+          opportunity_id?: string
+          triggered_delay_ms?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_responses_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           category: Database["public"]["Enums"]["opportunity_category"]
           created_at: string
           created_by: string | null
           deadline: string | null
-          details_bullets: string | null
           description: string
-          job_description: string | null
+          details_bullets: string | null
           end_date: string | null
           external_link: string | null
           id: string
           item_order: number
+          job_description: string | null
           poster_banner_crop: Json | null
           poster_url: string | null
+          sectors: string[] | null
           start_date: string | null
           status: Database["public"]["Enums"]["opportunity_status"]
           title: string
@@ -86,15 +168,16 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
-          details_bullets?: string | null
           description: string
-          job_description?: string | null
+          details_bullets?: string | null
           end_date?: string | null
           external_link?: string | null
           id?: string
           item_order?: number
+          job_description?: string | null
           poster_banner_crop?: Json | null
           poster_url?: string | null
+          sectors?: string[] | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title: string
@@ -105,21 +188,57 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
-          details_bullets?: string | null
           description?: string
-          job_description?: string | null
+          details_bullets?: string | null
           end_date?: string | null
           external_link?: string | null
           id?: string
           item_order?: number
+          job_description?: string | null
           poster_banner_crop?: Json | null
           poster_url?: string | null
+          sectors?: string[] | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      pending_applications: {
+        Row: {
+          clicked_at: string | null
+          id: string
+          opportunity_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          id?: string
+          opportunity_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          id?: string
+          opportunity_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -128,6 +247,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_premium: boolean
           updated_at: string
           user_id: string
         }
@@ -137,6 +257,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_premium?: boolean
           updated_at?: string
           user_id: string
         }
@@ -146,10 +267,40 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_premium?: boolean
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      saved_opportunities: {
+        Row: {
+          created_at: string | null
+          id: string
+          opportunity_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          opportunity_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          opportunity_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_opportunities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -195,10 +346,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      count_unique_visitors: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -220,7 +367,13 @@ export type Database = {
         | "click_logout"
         | "item_viewed"
         | "click_admin_action"
-      opportunity_category: "funding" | "events" | "hiring" | "news" | "something_new"
+        | "page_time"
+      opportunity_category:
+        | "funding"
+        | "events"
+        | "hiring"
+        | "news"
+        | "something_new"
       opportunity_status: "draft" | "published" | "archived"
     }
     CompositeTypes: {
@@ -347,6 +500,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
@@ -361,8 +517,15 @@ export const Constants = {
         "click_logout",
         "item_viewed",
         "click_admin_action",
+        "page_time",
       ],
-      opportunity_category: ["funding", "events", "hiring", "news", "something_new"],
+      opportunity_category: [
+        "funding",
+        "events",
+        "hiring",
+        "news",
+        "something_new",
+      ],
       opportunity_status: ["draft", "published", "archived"],
     },
   },

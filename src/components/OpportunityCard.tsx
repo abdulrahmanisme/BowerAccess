@@ -8,11 +8,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useItemView } from "@/hooks/use-item-view";
+import { DeadlineUrgency } from "./DeadlineUrgency";
+import { SectorBadge } from "./SectorBadge";
+import { SaveButton } from "./SaveButton";
+
 import { useState } from "react";
 import { isBefore, isTomorrow, isToday, startOfDay, parseISO, isValid } from "date-fns";
 import { toast } from "sonner";
 import { Briefcase, Calendar, Clock, ExternalLink, Lightbulb, MapPin, Newspaper } from "lucide-react";
 import { isPosterOptionalForCategory, type BulletinItem } from "@/lib/bulletin";
+import { getUrgencyInfo } from "@/lib/deadline-utils";
+import type { OpportunityCategory } from "@/lib/feedback-config";
+
+interface OpportunityCardProps {
+  opportunity: BulletinItem;
+  onGetAccess: (id: string) => void;
+  onViewed?: (id: string, durationMs: number) => void;
+  userId?: string | null;
+  isSaved?: boolean;
+  onSave?: (id: string) => Promise<void>;
+  onUnsave?: (id: string) => Promise<void>;
+}
 
 const defaultBannerCrop = {
   x: 50,
@@ -70,7 +86,15 @@ interface OpportunityCardProps {
   onClose?: (id: string) => void;
 }
 
-export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }: OpportunityCardProps) {
+export function OpportunityCard({
+  opportunity,
+  onGetAccess,
+  onViewed,
+  userId,
+  isSaved,
+  onSave,
+  onUnsave,
+}: OpportunityCardProps) {
   const [open, setOpen] = useState(false);
   const [jdOpen, setJdOpen] = useState(false);
   const hasAction = Boolean(opportunity.link);
@@ -247,16 +271,65 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
             )}
             {isTom && <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-500">Tomorrow</span>}
             {isExpired && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Expired</span>}
+
+            {/* Urgency badge from new deadline-utils system */}
+            {!isTodayEvent && !isTom && !isExpired && (
+              <DeadlineUrgency
+                level={getUrgencyInfo({
+                  endDate: opportunity.endDate,
+                  deadline: opportunity.endDate,
+                  startDate: opportunity.startDate,
+                  createdAt: opportunity.createdAt,
+                }).level}
+                daysLeft={getUrgencyInfo({
+                  endDate: opportunity.endDate,
+                  deadline: opportunity.endDate,
+                  startDate: opportunity.startDate,
+                  createdAt: opportunity.createdAt,
+                }).daysLeft}
+              />
+            )}
           </span>
           <span className={`text-xs font-medium ${isExpired ? "text-muted-foreground" : "text-primary"}`}>
             {isExpired ? "No longer available" : "Click to view and apply"}
           </span>
         </CardFooter>
+
+        {/* Funding meta strip — only shown when Stage or Amount is set */}
+        {opportunity.category === "funding" && (opportunity.fundingStage || opportunity.fundingAmount || (opportunity.sectors && opportunity.sectors.length > 0)) && (
+          <div className="border-t px-4 py-3 sm:px-6 space-y-2">
+            {(opportunity.fundingAmount || opportunity.fundingStage) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                {opportunity.fundingAmount && (
+                  <span className="flex items-center gap-1">
+                    <span className="font-semibold text-foreground/70">Cash amount/rewards/fund/amount available:</span>
+                    <span className="text-muted-foreground">{opportunity.fundingAmount}</span>
+                  </span>
+                )}
+                {opportunity.fundingStage && (
+                  <span className="flex items-center gap-1">
+                    <span className="font-semibold text-foreground/70">Stage</span>
+                    <span className="text-muted-foreground">{opportunity.fundingStage}</span>
+                  </span>
+                )}
+              </div>
+            )}
+            {opportunity.sectors && opportunity.sectors.length > 0 && (
+              <SectorBadge sectors={opportunity.sectors} />
+            )}
+          </div>
+        )}
+
+        {/* Sector badges for non-funding categories */}
+        {opportunity.category !== "funding" && opportunity.sectors && opportunity.sectors.length > 0 && (
+          <div className="px-4 py-2 sm:px-6">
+            <SectorBadge sectors={opportunity.sectors} />
+          </div>
+        )}
       </Card>
 
       <Dialog open={open} onOpenChange={(val) => {
         setOpen(val);
-        if (!val) onClose?.(opportunity.id);
       }}>
         <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-2xl">
           <DialogHeader>
@@ -323,15 +396,34 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
             )}
 
             {hasAction ? (
-              <Button
-                size="sm"
-                onClick={handleApplyClick}
-                className="gap-1.5"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                {opportunity.category === "news" ? "Read More" : "Apply"}
-              </Button>
-            ) : null}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    handleApplyClick();
+                  }}
+                  className="gap-1.5 flex-1"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {opportunity.category === "news" ? "Read More" : "Apply"}
+                </Button>
+                <SaveButton
+                  opportunityId={opportunity.id}
+                  isSaved={isSaved || false}
+                  onSave={onSave || (async () => { })}
+                  onUnsave={onUnsave || (async () => { })}
+                  disabled={!userId}
+                />
+              </div>
+            ) : (
+              <SaveButton
+                opportunityId={opportunity.id}
+                isSaved={isSaved || false}
+                onSave={onSave || (async () => { })}
+                onUnsave={onUnsave || (async () => { })}
+                disabled={!userId}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -368,6 +460,8 @@ export function OpportunityCard({ opportunity, onGetAccess, onViewed, onClose }:
           </div>
         </DialogContent>
       </Dialog>
+
+
     </>
   );
 }

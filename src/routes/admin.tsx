@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, type ChangeEvent, type MouseEvent } from "react";
+import { useState, useEffect, type ChangeEvent, type MouseEvent, type ClipboardEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTracking } from "@/hooks/use-page-tracking";
 import { trackEvent } from "@/lib/tracking";
@@ -28,12 +28,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectorPicker } from "@/components/SectorPicker";
+import { SectorSelect } from "@/components/SectorSelect";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Plus, Users, Eye, MousePointerClick, TrendingUp, Archive, Timer, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { BOWER_SEED_ITEMS } from "@/lib/bower-seed";
 import { isPosterOptionalForCategory, type BannerCrop } from "@/lib/bulletin";
+import type { Sector } from "@/lib/sectors";
+import { validateSectors } from "@/lib/sectors";
 
 const DEFAULT_BANNER_CROP: BannerCrop = {
   x: 50,
@@ -391,27 +395,31 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
     poster_url: string;
     poster_banner_crop: BannerCrop | null;
     status: "draft" | "published" | "archived";
+    sectors: Sector[];
   }) => {
     if (!user) return;
 
     const trimmedPosterUrl = formData.poster_url.trim();
 
     const normalizedData = {
-      ...formData,
+      title: formData.title,
+      description: formData.description,
+      job_description: formData.job_description,
       details_bullets: toBulletPointText(formData.details_text),
       start_date: formData.start_date.trim() || null,
       end_date: formData.end_date.trim() || null,
       external_link: formData.external_link.trim() || null,
       poster_url: trimmedPosterUrl || null,
       poster_banner_crop: trimmedPosterUrl ? formData.poster_banner_crop : null,
+      status: formData.status,
+      category: formData.category,
+      sectors: formData.sectors,
     };
-
-    const { details_text: _detailsText, ...dbPayload } = normalizedData;
 
     try {
       const result = editing
-        ? await supabase.from("opportunities").update(dbPayload).eq("id", editing.id)
-        : await supabase.from("opportunities").insert({ ...dbPayload, created_by: user.id });
+        ? await supabase.from("opportunities").update(normalizedData).eq("id", editing.id)
+        : await supabase.from("opportunities").insert({ ...normalizedData, created_by: user.id });
 
       if (result.error) {
         const categoryError = /opportunity_category|invalid input value for enum/i.test(result.error.message);
@@ -509,6 +517,7 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
             <TableRow>
               <TableHead>Title</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Sectors</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Views</TableHead>
               <TableHead>Clicks</TableHead>
@@ -528,6 +537,22 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
               <TableRow key={opp.id}>
                 <TableCell className="font-medium">{opp.title}</TableCell>
                 <TableCell><Badge variant="outline" className="capitalize">{opp.category}</Badge></TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {opp.sectors && opp.sectors.length > 0 ? (
+                      opp.sectors.slice(0, 3).map((sector: string) => (
+                        <Badge key={sector} variant="secondary" className="text-xs">
+                          {sector}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                    {opp.sectors && opp.sectors.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">+{opp.sectors.length - 3}</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell><Badge className={`${statusColor[opp.status]} capitalize`}>{opp.status}</Badge></TableCell>
                 <TableCell className="text-sm text-muted-foreground">{stats.views}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{stats.clicks}</TableCell>
@@ -556,7 +581,7 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
             ))}
             {filteredOpportunities.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
                   {opportunities.length === 0
                     ? "No content found in the database yet."
                     : "No content matches this category filter."}
@@ -597,7 +622,7 @@ function OpportunityFormDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSave: (data: { title: string; description: string; job_description: string; details_text: string; category: "funding" | "events" | "hiring" | "news" | "something_new"; start_date: string; end_date: string; external_link: string; poster_url: string; poster_banner_crop: BannerCrop | null; status: "draft" | "published" | "archived" }) => void;
+  onSave: (data: { title: string; description: string; job_description: string; details_text: string; category: "funding" | "events" | "hiring" | "news" | "something_new"; start_date: string; end_date: string; external_link: string; poster_url: string; poster_banner_crop: BannerCrop | null; status: "draft" | "published" | "archived"; sectors: Sector[] }) => void;
   initial: Tables<"opportunities"> | null;
 }) {
   const [title, setTitle] = useState("");
@@ -613,6 +638,10 @@ function OpportunityFormDialog({
   const [bannerCrop, setBannerCrop] = useState<BannerCrop>(DEFAULT_BANNER_CROP);
   const [isPosterUploading, setIsPosterUploading] = useState(false);
   const [status, setStatus] = useState<"draft" | "published" | "archived">("draft");
+  const [sectors, setSectors] = useState<Sector[]>([]);
+  const [fundingStage, setFundingStage] = useState("");
+  const [fundingAmount, setFundingAmount] = useState("");
+  const [isRolling, setIsRolling] = useState(false);
   const isPosterOptionalCategory = isPosterOptionalForCategory(category);
 
   useEffect(() => {
@@ -620,11 +649,26 @@ function OpportunityFormDialog({
       setTitle(initial.title);
       setDescription(initial.description);
       setJobDescription(initial.job_description || "");
+      // Parse details_bullets, extracting structured Stage/Amount fields
+      const rawBullets = (initial.details_bullets || "")
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
+        .filter(Boolean);
+      
+      const extractVal = (prefix: string) => {
+        const m = rawBullets.find((b) => b.toLowerCase().startsWith(prefix.toLowerCase() + ":"));
+        return m ? m.slice(prefix.length + 1).trim() : "";
+      };
+
+      setFundingStage(initial.category === "funding" ? extractVal("Stage") : "");
+      setFundingAmount(initial.category === "funding" ? extractVal("Amount") : "");
+
+      const rollingLine = rawBullets.find((b) => b.toLowerCase().startsWith("deadline:") && b.toLowerCase().includes("rolling"));
+      setIsRolling(!!rollingLine);
+
       setDetailsText(
-        (initial.details_bullets || "")
-          .split(/\r?\n/)
-          .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
-          .filter(Boolean)
+        rawBullets
+          .filter((b) => !b.toLowerCase().startsWith("stage:") && !b.toLowerCase().startsWith("amount:") && !b.toLowerCase().startsWith("deadline:"))
           .join("\n")
       );
       setCategory(initial.category);
@@ -635,6 +679,7 @@ function OpportunityFormDialog({
       setPosterFileName(initial.poster_url ? "Image already uploaded" : "");
       setBannerCrop(parsePosterBannerCrop(initial.poster_banner_crop));
       setStatus(initial.status);
+      setSectors(validateSectors((initial.sectors as unknown[]) || []));
     } else {
       setTitle("");
       setDescription("");
@@ -648,23 +693,22 @@ function OpportunityFormDialog({
       setPosterFileName("");
       setBannerCrop(DEFAULT_BANNER_CROP);
       setStatus("draft");
+      setSectors([]);
+      setFundingStage("");
+      setFundingAmount("");
+      setIsRolling(false);
     }
   }, [initial, open]);
 
-  const handlePosterUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload a valid image file.");
-      event.target.value = "";
       return;
     }
 
     const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
       toast.error("Image size must be 5 MB or less.");
-      event.target.value = "";
       return;
     }
 
@@ -672,6 +716,7 @@ function OpportunityFormDialog({
 
     try {
       const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const fileName = file.name === "image.png" ? `pasted-image.png` : file.name;
       const filePath = `opportunities/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
@@ -687,7 +732,7 @@ function OpportunityFormDialog({
         .getPublicUrl(filePath);
 
       setPosterUrl(data.publicUrl);
-      setPosterFileName(file.name);
+      setPosterFileName(fileName);
       setBannerCrop(DEFAULT_BANNER_CROP);
       toast.success("Poster uploaded.");
     } catch (error) {
@@ -695,7 +740,30 @@ function OpportunityFormDialog({
       toast.error(`Could not upload image: ${message}`);
     } finally {
       setIsPosterUploading(false);
-      event.target.value = "";
+    }
+  };
+
+  const handlePosterUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await uploadFile(file);
+    event.target.value = "";
+  };
+
+  const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
+    // Only intercept image pastes
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          event.preventDefault();
+          await uploadFile(file);
+          return;
+        }
+      }
     }
   };
 
@@ -713,7 +781,7 @@ function OpportunityFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent onPaste={handlePaste} className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <DialogTitle className="pr-8 font-display">{initial ? "Edit" : "New"} Opportunity</DialogTitle>
         </DialogHeader>
@@ -777,12 +845,59 @@ function OpportunityFormDialog({
             </div>
           </div>
           <div>
+            <Label>Sectors (Optional)</Label>
+            <SectorSelect selectedSectors={sectors} onSectorsChange={setSectors} placeholder="Select sectors..." />
+          </div>
+
+          {/* Funding-specific fields */}
+          {category === "funding" && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Stage</Label>
+                <Input
+                  value={fundingStage}
+                  onChange={(e) => setFundingStage(e.target.value)}
+                  placeholder="e.g. Pre-seed, Seed, Series A"
+                />
+              </div>
+              <div>
+                <Label>Amount</Label>
+                <Input
+                  value={fundingAmount}
+                  onChange={(e) => setFundingAmount(e.target.value)}
+                  placeholder="e.g. ₹50L, $100K, Up to ₹1Cr"
+                />
+              </div>
+            </div>
+          )}
+          <div>
             <Label>Start Date</Label>
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
-            <Label>End Date (Optional)</Label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <div className="flex items-center justify-between mb-1">
+              <Label>End Date / Deadline (Optional)</Label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isRolling}
+                  onChange={(e) => {
+                    setIsRolling(e.target.checked);
+                    if (e.target.checked) setEndDate("");
+                  }}
+                  className="h-3.5 w-3.5 accent-primary"
+                />
+                <span className="text-xs text-muted-foreground">Rolling Basis</span>
+              </label>
+            </div>
+            {!isRolling && (
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            )}
+            {isRolling && (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                <span className="text-xs text-muted-foreground">Deadline will show as <strong>Rolling Basis</strong> on the card.</span>
+              </div>
+            )}
           </div>
           <div>
             <Label>Opportunity Details (Optional)</Label>
@@ -801,7 +916,10 @@ function OpportunityFormDialog({
           </div>
           <div>
             <Label>Poster Image</Label>
-            <Input type="file" accept="image/*" onChange={handlePosterUpload} disabled={isPosterUploading} />
+            <div className="flex gap-2 items-center mb-2">
+              <Input type="file" accept="image/*" onChange={handlePosterUpload} disabled={isPosterUploading} className="flex-1" />
+              <div className="text-xs text-muted-foreground whitespace-nowrap hidden sm:block">or CTRL+V to paste</div>
+            </div>
             {isPosterOptionalCategory && (
               <p className="mt-1 text-xs text-muted-foreground">
                 Optional for this category. You can publish this opportunity without a poster.
@@ -895,19 +1013,32 @@ function OpportunityFormDialog({
           <Button
             className="w-full"
             disabled={!title.trim() || !description.trim() || isPosterUploading}
-            onClick={() => onSave({
-              title,
-              description,
-              job_description: jobDescription,
-              details_text: detailsText,
-              category,
-              start_date: startDate,
-              end_date: endDate,
-              external_link: externalLink,
-              poster_url: posterUrl,
-              poster_banner_crop: posterUrl ? bannerCrop : null,
-              status,
-            })}
+            onClick={() => {
+              // For funding category, prepend structured fields as bullet lines
+              const structuredPrefix = category === "funding"
+                ? [
+                    fundingStage.trim() ? `Stage: ${fundingStage.trim()}` : "",
+                    fundingAmount.trim() ? `Amount: ${fundingAmount.trim()}` : "",
+                    isRolling ? "Deadline: Rolling Basis" : "",
+                  ].filter(Boolean).join("\n")
+                : isRolling ? "Deadline: Rolling Basis" : "";
+              const combinedDetails = [structuredPrefix, detailsText.trim()].filter(Boolean).join("\n");
+
+              onSave({
+                title,
+                description,
+                job_description: jobDescription,
+                details_text: combinedDetails,
+                category,
+                start_date: startDate,
+                end_date: endDate,
+                external_link: externalLink,
+                poster_url: posterUrl,
+                poster_banner_crop: posterUrl ? bannerCrop : null,
+                status,
+                sectors,
+              });
+            }}
           >
             {initial ? "Update" : "Create"} Opportunity
           </Button>

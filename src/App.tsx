@@ -7,6 +7,7 @@ import { initPostHog } from "@/integrations/posthog";
 import HomePage from "@/routes/index";
 import LoginPage from "@/routes/login";
 import AdminDashboardPage from "@/routes/admin";
+import SavedPage from "@/routes/saved";
 
 initPostHog();
 
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/saved" element={<SavedPage />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/index.html" element={<Navigate to="/" replace />} />
         </Routes>

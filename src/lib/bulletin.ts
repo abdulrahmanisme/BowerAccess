@@ -20,6 +20,7 @@ export interface BulletinItem {
   dateLabel?: string;
   startDate?: string;
   endDate?: string;
+  createdAt: string; // ISO date string, needed for urgency calculation
   timeLabel?: string;
   venue?: string;
   amountLabel?: string;
@@ -27,7 +28,10 @@ export interface BulletinItem {
   imageUrl?: string;
   bannerCrop?: BannerCrop;
   itemOrder?: number;
+  sectors?: string[]; // Array of sector tags
   source: BulletinSource;
+  fundingStage?: string;   // e.g. "Pre-seed", "Seed"
+  fundingAmount?: string;  // e.g. "₹50L", "$100K"
 }
 
 export interface BulletinSection {
@@ -39,7 +43,7 @@ export interface BulletinSection {
 export const BULLETIN_SECTIONS: BulletinSection[] = [
   {
     category: "funding",
-    title: "Capital/Opportunities worth ₹ 36.2 Crore",
+    title: "Capital/Opportunities worth ₹ 27.4 Crore",
     subtitle: "Curated capital and opportunities relevent for idea and early stage startups.",
   },
   {

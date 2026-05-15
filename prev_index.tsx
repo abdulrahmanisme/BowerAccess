@@ -1,15 +1,12 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTracking } from "@/hooks/use-page-tracking";
 import { trackEvent } from "@/lib/tracking";
-import { useSavedOpportunities } from "@/hooks/use-saved-opportunities";
-import { usePendingApplications } from "@/hooks/use-pending-applications";
-import { OpportunityCard } from "@/components/OpportunityCard";
-import { ApplicationConfirmation } from "@/components/ApplicationConfirmation";
 import { useFeedbackMemory } from "@/hooks/use-feedback-memory";
-import { SectorFilter } from "@/components/SectorFilter";
+import { OpportunityCard } from "@/components/OpportunityCard";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -19,10 +16,6 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import type { BulletinItem } from "@/lib/bulletin";
 import { BULLETIN_SECTIONS } from "@/lib/bulletin";
-import type { Sector } from "@/lib/sectors";
-import { validateSectors } from "@/lib/sectors";
-import { getUrgencyLevel, getUrgencySortValue } from "@/lib/deadline-utils";
-import type { OpportunityCategory } from "@/lib/feedback-config";
 
 type CategoryFilter = BulletinItem["category"] | "all";
 
@@ -32,7 +25,7 @@ const HOME_CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "events", label: "Events" },
   { value: "news", label: "Ecosystem News" },
   { value: "hiring", label: "Hiring - VC / PE Cohort" },
-  { value: "something_new", label: "💥 New for you" },
+  { value: "something_new", label: "≡ƒÆÑ New for you" },
 ];
 
 function toTimestamp(value?: string | null): number | null {
@@ -93,36 +86,11 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     dateLabel = `Deadline: ${legacyDeadline}`;
   }
 
-  const allBullets = (opp.details_bullets || "")
+  const detailBullets = (opp.details_bullets || "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line.replace(/^[-*\u2022]\s*/, ""));
-
-  // Extract structured funding fields from bullet lines (e.g. "Stage: Pre-seed")
-  const extractBulletValue = (prefix: string) => {
-    const match = allBullets.find((b) =>
-      b.toLowerCase().startsWith(prefix.toLowerCase() + ":")
-    );
-    return match ? match.slice(prefix.length + 1).trim() : undefined;
-  };
-
-  const fundingStage = opp.category === "funding" ? extractBulletValue("Stage") : undefined;
-  const fundingAmount = opp.category === "funding" ? extractBulletValue("Amount") : undefined;
-
-  // Check for rolling deadline (applies to all categories)
-  const isRollingDeadline = allBullets.some(
-    (b) => b.toLowerCase().startsWith("deadline:") && b.toLowerCase().includes("rolling")
-  );
-
-  // Remove structured fields from the visible bullet list so they don't double-render
-  const detailBullets = allBullets.filter((b) => {
-    const lower = b.toLowerCase();
-    return !lower.startsWith("stage:") && !lower.startsWith("amount:") && !lower.startsWith("deadline:");
-  });
-
-  // Rolling deadline overrides any date-based label
-  const resolvedDateLabel = isRollingDeadline ? "Rolling Basis" : dateLabel;
 
   return {
     id: opp.id,
@@ -132,18 +100,14 @@ function mapToBulletinItem(opp: Tables<"opportunities">): BulletinItem {
     detailBullets: detailBullets.length > 0 ? detailBullets : undefined,
     category: (opp.category as BulletinItem["category"]) || "funding",
     status: opp.status,
-    dateLabel: resolvedDateLabel,
+    dateLabel,
     startDate: opp.start_date || undefined,
     endDate: opp.end_date || opp.deadline || undefined,
-    createdAt: opp.created_at,
     link: opp.external_link || undefined,
     imageUrl: opp.poster_url || undefined,
     bannerCrop: parseBannerCrop(opp.poster_banner_crop),
     itemOrder: opp.item_order ?? undefined,
-    sectors: validateSectors((opp.sectors as unknown[]) || []),
     source: "db",
-    fundingStage,
-    fundingAmount,
   };
 }
 
@@ -152,16 +116,23 @@ export default function IndexPage() {
   const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<Tables<"opportunities">[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [lastAppliedId, setLastAppliedId] = useState<string | null>(null);
-  const [lastAppliedTime, setLastAppliedTime] = useState<number | null>(null);
-
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
-  const [showAppConfirmation, setShowAppConfirmation] = useState(false);
-  const [hasShownAppConfirmationOnce, setHasShownAppConfirmationOnce] = useState(false);
-  
-  const { saved, isSaved, save, unsave } = useSavedOpportunities(user?.id ?? null);
-  const { pending, confirmApplication, confirmApplicationViaToast, saveForLater, refresh } = usePendingApplications(user?.id ?? null);
+  const { hasFeedback, markFeedback } = useFeedbackMemory(user?.id ?? null);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (lastAppliedId) {
+        if (!hasFeedback(lastAppliedId)) {
+          setFeedbackId(lastAppliedId);
+        }
+        setLastAppliedId(null);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [lastAppliedId, hasFeedback]);
 
   usePageTracking(user?.id || null, "/");
 
@@ -184,40 +155,22 @@ export default function IndexPage() {
     load();
   }, []);
 
-
-
-  // Show application confirmation modal when user returns with pending applications
-  useEffect(() => {
-    if (user && pending.length > 0 && !hasShownAppConfirmationOnce) {
-      setShowAppConfirmation(true);
-      setHasShownAppConfirmationOnce(true);
+  const handleCardClose = (id: string) => {
+    // If we were waiting for them to come back from an "Apply" click, 
+    // we clear that since they are now closing the card manually.
+    if (lastAppliedId === id) {
+      setLastAppliedId(null);
     }
-  }, [user, pending, hasShownAppConfirmationOnce]);
-
-  // Trigger Welcome Back modal immediately upon window focus after clicking apply
-  useEffect(() => {
-    const handleFocus = () => {
-      if (lastAppliedId) {
-        // The user just returned from the external application link
-        void refresh();
-        setHasShownAppConfirmationOnce(false);
-        setLastAppliedId(null);
-        setLastAppliedTime(null);
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [lastAppliedId, refresh]);
-
-
-
-
+    // Only prompt feedback once per opportunity per user.
+    if (!hasFeedback(id)) {
+      setFeedbackId(id);
+    }
+  };
 
   const handleGetAccess = (id: string) => {
     const dbItem = opportunities.find((o) => o.id === id);
     const targetLink = dbItem?.external_link;
-    const itemCategory = (dbItem?.category ?? "hiring") as OpportunityCategory;
+    const itemCategory = dbItem?.category;
     const itemTitle = dbItem?.title;
 
     if (!dbItem) {
@@ -239,25 +192,7 @@ export default function IndexPage() {
     // Deferring this after async trackEvent() calls causes browsers to
     // block the popup because the user-gesture context has expired.
     setLastAppliedId(id);
-    setLastAppliedTime(Date.now());
     window.open(targetLink, "_blank", "noopener,noreferrer");
-
-    // Insert pending application record
-    void (async () => {
-      try {
-        await supabase.from("pending_applications").insert({
-          user_id: user.id,
-          opportunity_id: id,
-          status: "clicked",
-          clicked_at: new Date().toISOString(),
-        });
-      } catch (err) {
-        // Silently fail - this is non-critical tracking
-        console.error("Could not insert pending application:", err);
-      }
-    })();
-
-
 
     // Fire-and-forget: analytics tracking should never block navigation.
     void trackEvent({
@@ -303,25 +238,10 @@ export default function IndexPage() {
   const sortTimestampById = new Map(
     opportunities.map((opp) => [opp.id, getOpportunitySortTimestamp(opp)])
   );
-  
   const filteredItems = publishedItems.filter((item) => {
-    // Apply category filter
-    if (categoryFilter !== "all" && item.category !== categoryFilter) {
-      return false;
-    }
-    
-    // Apply sector filter
-    if (selectedSectors.length > 0) {
-      const itemSectors = item.sectors || [];
-      const hasSectorMatch = selectedSectors.some((sector) => itemSectors.includes(sector));
-      if (!hasSectorMatch) {
-        return false;
-      }
-    }
-    
-    return true;
+    if (categoryFilter === "all") return true;
+    return item.category === categoryFilter;
   });
-  
   const selectedFilterLabel = HOME_CATEGORY_FILTERS.find((filter) => filter.value === categoryFilter)?.label || "All opportunities";
 
   const checkExpired = (item: BulletinItem) => {
@@ -347,46 +267,46 @@ export default function IndexPage() {
   };
 
   const sortItems = (items: BulletinItem[]) => {
+    const todayMs = startOfDay(new Date()).getTime();
+
     return [...items].sort((a, b) => {
-      // Get urgency levels for both items
-      const aUrgency = getUrgencyLevel({
-        endDate: a.endDate,
-        deadline: a.endDate, // fallback to endDate
-        startDate: a.startDate,
-        createdAt: a.createdAt,
-      });
-      const bUrgency = getUrgencyLevel({
-        endDate: b.endDate,
-        deadline: b.endDate,
-        startDate: b.startDate,
-        createdAt: b.createdAt,
-      });
+      const aExpired = checkExpired(a);
+      const bExpired = checkExpired(b);
 
-      // Sort by urgency level first (lower value = higher priority)
-      const aSort = getUrgencySortValue(aUrgency);
-      const bSort = getUrgencySortValue(bUrgency);
+      if (aExpired && !bExpired) return 1;
+      if (!aExpired && bExpired) return -1;
 
-      if (aSort !== bSort) {
-        return aSort - bSort;
-      }
+      const aToday = checkIsToday(a);
+      const bToday = checkIsToday(b);
 
-      // Within same urgency level, sort by deadline (earliest first)
+      if (aToday && !bToday) return -1;
+      if (!aToday && bToday) return 1;
+
       const aTimestamp = sortTimestampById.get(a.id) ?? 0;
       const bTimestamp = sortTimestampById.get(b.id) ?? 0;
 
-      if (aTimestamp !== bTimestamp) {
-        return aTimestamp - bTimestamp;
+      if (!aExpired && !bExpired) {
+        const aHasFutureDate = Boolean((a.startDate || a.endDate) && aTimestamp >= todayMs);
+        const bHasFutureDate = Boolean((b.startDate || b.endDate) && bTimestamp >= todayMs);
+
+        if (aHasFutureDate && !bHasFutureDate) return -1;
+        if (!aHasFutureDate && bHasFutureDate) return 1;
+
+        if (aHasFutureDate && bHasFutureDate) {
+          if (aTimestamp !== bTimestamp) {
+            return aTimestamp - bTimestamp;
+          }
+        }
       }
 
-      // Tiebreaker: item_order, then created_at
-      const aOrder = a.itemOrder ?? 999;
-      const bOrder = b.itemOrder ?? 999;
+      // For items without future dates (news, something_new), sort newest first based on created_at
+      const byDate = bTimestamp - aTimestamp;
 
-      if (aOrder !== bOrder) {
-        return aOrder - bOrder;
+      if (byDate !== 0) {
+        return byDate;
       }
 
-      return 0;
+      return (a.itemOrder || 999) - (b.itemOrder || 999);
     });
   };
 
@@ -410,58 +330,29 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers opportunities dated between 9 May – 24 May. Scan fast, act faster.
+          This edition covers opportunities dated between 2 May ΓÇô 17 May. Scan fast, act faster.
         </p>
-        <div className="mt-8">
-          <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4 space-y-4">
-            {/* Category Filters */}
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Category</h3>
-              <div className="flex flex-wrap gap-2">
-                {HOME_CATEGORY_FILTERS.map((filter) => {
-                  const count = filter.value === "all"
-                    ? publishedItems.length
-                    : categoryCounts[filter.value] || 0;
-                  return (
-                    <Button
-                      key={filter.value}
-                      type="button"
-                      size="sm"
-                      variant={categoryFilter === filter.value ? "default" : "outline"}
-                      className="text-xs"
-                      onClick={() => setCategoryFilter(filter.value)}
-                    >
-                      {filter.label} ({count})
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sector Filter */}
-            <div className="border-t pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Sector</h3>
-              <SectorFilter
-                selectedSectors={selectedSectors}
-                onSectorsChange={(sectors) => {
-                  setSelectedSectors(sectors);
-                  
-                  // Track sector filter change
-                  if (user) {
-                    void trackEvent({
-                      userId: user.id,
-                      eventType: "sector_filter_applied" as any,
-                      metadata: {
-                        sectors: sectors,
-                        action: sectors.length > 0 ? "apply" : "clear",
-                      },
-                      pagePath: "/",
-                    });
-                  }
-                }}
-              />
-            </div>
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {HOME_CATEGORY_FILTERS.map((filter) => {
+              const count = filter.value === "all"
+                ? publishedItems.length
+                : categoryCounts[filter.value] || 0;
+              return (
+                <Button
+                  key={filter.value}
+                  type="button"
+                  size="sm"
+                  variant={categoryFilter === filter.value ? "default" : "secondary"}
+                  className="rounded-full"
+                  onClick={() => setCategoryFilter(filter.value)}
+                >
+                  {filter.label} ({count})
+                </Button>
+              );
+            })}
           </div>
+
         </div>
       </section>
 
@@ -521,10 +412,7 @@ export default function IndexPage() {
                         onViewed={(_, durationMs) => {
                           void handleItemViewed(item, durationMs);
                         }}
-                        userId={user?.id}
-                        isSaved={isSaved(item.id)}
-                        onSave={save}
-                        onUnsave={unsave}
+                        onClose={handleCardClose}
                       />
                     </div>
                   ))}
@@ -535,18 +423,14 @@ export default function IndexPage() {
         </div>
       )}
 
-
-      {user && (
-        <ApplicationConfirmation
-          open={showAppConfirmation}
-          onOpenChange={setShowAppConfirmation}
-          pendingApplications={pending}
-          onConfirm={confirmApplication}
-          onSaveForLater={saveForLater}
+      {feedbackId && (
+        <FeedbackDialog
+          open={!!feedbackId}
+          onOpenChange={(v) => { if (!v) setFeedbackId(null); }}
+          opportunityId={feedbackId}
+          onFeedbackSubmitted={(id) => markFeedback(id)}
         />
       )}
-
-
     </main>
   );
 }
