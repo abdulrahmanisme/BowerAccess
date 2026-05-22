@@ -109,6 +109,7 @@ Given the following text, extract these fields:
 You MUST assign 1-5 sector tags from ONLY this list: ${SECTOR_LIST.join(", ")}.
 
 SECTOR MAPPING GUIDE — use these heuristics to assign the correct sectors:
+- "All Sector" → use this ONLY if no specific sector clearly applies 
 - "Agritech" → agriculture, farming, crop tech, agri supply chain, farm-to-fork, precision farming
 - "AI" → artificial intelligence, machine learning, LLMs, NLP, computer vision, GenAI, data science, deep learning
 - "Cleantech" → clean energy, sustainability, green tech, waste management, recycling, circular economy, carbon credits

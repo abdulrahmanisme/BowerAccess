@@ -4,6 +4,7 @@
  */
 
 export const SECTOR_LIST = [
+  "All Sector",
   "Agritech",
   "AI",
   "Cleantech",
