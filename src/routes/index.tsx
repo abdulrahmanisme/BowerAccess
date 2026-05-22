@@ -348,8 +348,9 @@ export default function IndexPage() {
 
   const sortItems = (items: BulletinItem[]) => {
     return [...items].sort((a, b) => {
-      // For hiring category, sort by created_at descending (newest first)
-      if (a.category === "hiring" && b.category === "hiring") {
+      // For hiring and something_new categories, sort by created_at descending (newest first)
+      const isNewestFirstCategory = (cat: string) => cat === "hiring" || cat === "something_new";
+      if (isNewestFirstCategory(a.category) && isNewestFirstCategory(b.category)) {
         const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         if (aTime !== bTime) {
