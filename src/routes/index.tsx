@@ -348,6 +348,21 @@ export default function IndexPage() {
 
   const sortItems = (items: BulletinItem[]) => {
     return [...items].sort((a, b) => {
+      // For hiring category, sort by created_at descending (newest first)
+      if (a.category === "hiring" && b.category === "hiring") {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (aTime !== bTime) {
+          return bTime - aTime;
+        }
+        const aOrder = a.itemOrder ?? 999;
+        const bOrder = b.itemOrder ?? 999;
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
+        }
+        return 0;
+      }
+
       // Get urgency levels for both items
       const aUrgency = getUrgencyLevel({
         endDate: a.endDate,
@@ -410,7 +425,7 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers opportunities dated between 23 May – 7 May. Scan fast, act faster.
+          This edition covers opportunities dated between 23 May – 7 June. Scan fast, act faster.
         </p>
         <div className="mt-8">
           <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4 space-y-4">
