@@ -111,7 +111,6 @@ You MUST assign 1-5 sector tags from ONLY this list: ${SECTOR_LIST.join(", ")}.
 SECTOR MAPPING GUIDE — use these heuristics to assign the correct sectors:
 - "Agritech" → agriculture, farming, crop tech, agri supply chain, farm-to-fork, precision farming
 - "AI" → artificial intelligence, machine learning, LLMs, NLP, computer vision, GenAI, data science, deep learning
-- "Accelerator" → accelerator programs, incubators, startup cohorts, mentorship programs, fellowship programs (use this AS WELL as the domain sector)
 - "Cleantech" → clean energy, sustainability, green tech, waste management, recycling, circular economy, carbon credits
 - "Climatetech" → climate change, carbon capture, environmental tech, climate adaptation, climate resilience
 - "Deeptech" → hardware, semiconductors, quantum computing, robotics, advanced materials, biotech, nanotech

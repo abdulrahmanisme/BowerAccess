@@ -6,7 +6,6 @@
 export const SECTOR_LIST = [
   "Agritech",
   "AI",
-  "Accelerator",
   "Cleantech",
   "Climatetech",
   "Deeptech",
