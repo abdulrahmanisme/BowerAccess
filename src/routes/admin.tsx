@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, type ChangeEvent, type MouseEvent, type ClipboardEvent } from "react";
+import { useState, useEffect, useRef, type ChangeEvent, type MouseEvent, type ClipboardEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTracking } from "@/hooks/use-page-tracking";
 import { trackEvent } from "@/lib/tracking";
@@ -32,7 +32,8 @@ import { SectorPicker } from "@/components/SectorPicker";
 import { SectorSelect } from "@/components/SectorSelect";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus, Users, Eye, MousePointerClick, TrendingUp, Archive, Timer, ExternalLink } from "lucide-react";
+import { Plus, Users, Eye, MousePointerClick, TrendingUp, Archive, Timer, ExternalLink, Sparkles, Loader2, AlertCircle, CheckCircle2, Link2, Settings2 } from "lucide-react";
+import { runSmartImport, extractUrls, getGeminiModel, setGeminiModel, type ExtractedOpportunity } from "@/lib/smart-import";
 import type { Tables } from "@/integrations/supabase/types";
 import { BOWER_SEED_ITEMS } from "@/lib/bower-seed";
 import { isPosterOptionalForCategory, type BannerCrop } from "@/lib/bulletin";
@@ -252,6 +253,8 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Tables<"opportunities"> | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<"all" | "funding" | "events" | "hiring" | "news" | "something_new">("all");
+  const [showSmartImport, setShowSmartImport] = useState(false);
+  const [smartImportPrefill, setSmartImportPrefill] = useState<ExtractedOpportunity | null>(null);
   const [isImportingSeed, setIsImportingSeed] = useState(false);
 
   const toBulletPointText = (value: string) => {
@@ -506,7 +509,11 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
           </SelectContent>
         </Select>
 
-        <Button onClick={() => { setEditing(null); setShowForm(true); }} className="gap-1.5">
+        <Button onClick={() => { setShowSmartImport(true); }} variant="outline" className="gap-1.5">
+          <Sparkles className="h-4 w-4" /> Smart Import
+        </Button>
+
+        <Button onClick={() => { setEditing(null); setSmartImportPrefill(null); setShowForm(true); }} className="gap-1.5">
           <Plus className="h-4 w-4" /> Add Opportunity
         </Button>
       </div>
@@ -609,6 +616,18 @@ function OpportunitiesTab({ isActive }: { isActive: boolean }) {
         onOpenChange={setShowForm}
         onSave={handleSave}
         initial={editing}
+        prefill={smartImportPrefill}
+      />
+
+      <SmartImportDialog
+        open={showSmartImport}
+        onOpenChange={setShowSmartImport}
+        onImported={(data) => {
+          setShowSmartImport(false);
+          setEditing(null);
+          setSmartImportPrefill(data);
+          setShowForm(true);
+        }}
       />
     </div>
   );
@@ -619,11 +638,13 @@ function OpportunityFormDialog({
   onOpenChange,
   onSave,
   initial,
+  prefill,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSave: (data: { title: string; description: string; job_description: string; details_text: string; category: "funding" | "events" | "hiring" | "news" | "something_new"; start_date: string; end_date: string; external_link: string; poster_url: string; poster_banner_crop: BannerCrop | null; status: "draft" | "published" | "archived"; sectors: Sector[] }) => void;
   initial: Tables<"opportunities"> | null;
+  prefill?: ExtractedOpportunity | null;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -680,6 +701,24 @@ function OpportunityFormDialog({
       setBannerCrop(parsePosterBannerCrop(initial.poster_banner_crop));
       setStatus(initial.status);
       setSectors(validateSectors((initial.sectors as unknown[]) || []));
+    } else if (prefill) {
+      // Pre-fill from Smart Import
+      setTitle(prefill.title);
+      setDescription(prefill.description);
+      setJobDescription("");
+      setDetailsText(prefill.details_bullets.join("\n"));
+      setCategory(prefill.category);
+      setStartDate(prefill.start_date);
+      setEndDate(prefill.end_date);
+      setExternalLink(prefill.external_link);
+      setPosterUrl(prefill.poster_image_url || "");
+      setPosterFileName(prefill.poster_image_url ? "Image from import" : "");
+      setBannerCrop(DEFAULT_BANNER_CROP);
+      setStatus("draft");
+      setSectors(prefill.sectors);
+      setFundingStage(prefill.funding_stage || "");
+      setFundingAmount(prefill.funding_amount || "");
+      setIsRolling(prefill.is_rolling);
     } else {
       setTitle("");
       setDescription("");
@@ -1042,6 +1081,356 @@ function OpportunityFormDialog({
           >
             {initial ? "Update" : "Create"} Opportunity
           </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Smart Import Dialog ────────────────────────────────────────────────
+
+const GEMINI_KEY_STORAGE = "bower_gemini_api_key";
+
+function SmartImportDialog({
+  open,
+  onOpenChange,
+  onImported,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onImported: (data: ExtractedOpportunity) => void;
+}) {
+  const [rawInput, setRawInput] = useState("");
+  const envApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const [apiKey, setApiKey] = useState(() => envApiKey || localStorage.getItem(GEMINI_KEY_STORAGE) || "");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [modelName, setModelName] = useState(() => getGeminiModel());
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionStep, setExtractionStep] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ExtractedOpportunity | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleModelChange = (model: string) => {
+    setModelName(model);
+    setGeminiModel(model);
+  };
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setRawInput("");
+      setError(null);
+      setPreview(null);
+      setIsExtracting(false);
+      setExtractionStep("");
+      setShowApiKeyInput(!apiKey && !envApiKey);
+    }
+  }, [open, apiKey, envApiKey]);
+
+  const detectedUrls = extractUrls(rawInput);
+
+  const handleSaveApiKey = (key: string) => {
+    const trimmed = key.trim();
+    // Also persist current model
+    setGeminiModel(modelName);
+    setApiKey(trimmed || envApiKey || "");
+    if (trimmed) {
+      localStorage.setItem(GEMINI_KEY_STORAGE, trimmed);
+    }
+    setShowApiKeyInput(false);
+  };
+
+  const handleExtract = async () => {
+    if (!rawInput.trim()) {
+      setError("Please paste a WhatsApp message or URL.");
+      return;
+    }
+
+    if (!apiKey) {
+      setShowApiKeyInput(true);
+      setError("Please provide a Gemini API key to use Smart Import.");
+      return;
+    }
+
+    setIsExtracting(true);
+    setError(null);
+    setPreview(null);
+
+    try {
+      // Step 1: URL scraping
+      if (detectedUrls.length > 0) {
+        setExtractionStep(`Scraping ${detectedUrls[0]}...`);
+      } else {
+        setExtractionStep("Analyzing text with AI...");
+      }
+
+      // Small delay so user sees the step
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Step 2: AI extraction
+      setExtractionStep("Extracting opportunity details with AI...");
+      const result = await runSmartImport(rawInput, apiKey);
+
+      if (!result.success || !result.data) {
+        setError(result.error || "Extraction failed. Try rephrasing or adding more details.");
+        return;
+      }
+
+      setPreview(result.data);
+      setExtractionStep("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error during extraction.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleUseExtraction = () => {
+    if (preview) {
+      onImported(preview);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+          <DialogTitle className="flex items-center gap-2 pr-8 font-display">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            Smart Import
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <div className="space-y-4">
+            {/* API Key Setup */}
+            {showApiKeyInput && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+                  <Settings2 className="h-4 w-4" />
+                  Gemini API Key Required
+                </div>
+                <p className="text-xs text-amber-700">
+                  Get a free API key from{" "}
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="underline font-medium">
+                    Google AI Studio
+                  </a>. Key is stored locally in your browser.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Paste your Gemini API key..."
+                    defaultValue={apiKey}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSaveApiKey((e.target as HTMLInputElement).value);
+                      }
+                    }}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      const input = (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement);
+                      if (input) handleSaveApiKey(input.value);
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Label className="text-xs text-amber-700 whitespace-nowrap">Model:</Label>
+                  <Select value={modelName} onValueChange={handleModelChange}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-3.5-flash">Gemini 3.5 Flash (Fast)</SelectItem>
+                      <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                      <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+                      <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro (Best)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* API key status indicator */}
+            {apiKey && !showApiKeyInput && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  Gemini API key configured {envApiKey ? "(from .env)" : ""} · <span className="font-medium">{modelName}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto px-1.5 py-0.5 text-xs"
+                  onClick={() => setShowApiKeyInput(true)}
+                >
+                  Change
+                </Button>
+              </div>
+            )}
+
+            {/* Main input */}
+            <div>
+              <Label>Paste WhatsApp message or URL</Label>
+              <Textarea
+                ref={textareaRef}
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                rows={8}
+                className="mt-1 sm:min-h-[180px] font-mono text-sm"
+                placeholder={`Paste a WhatsApp message like:\n\n🚀 XYZ Accelerator - Applications Open!\nDeadline: June 30, 2026\nAmount: Up to ₹50 Lakhs\nApply here: https://example.com/apply\n\n...or just paste a URL to auto-extract details.`}
+                disabled={isExtracting}
+              />
+            </div>
+
+            {/* Detected URLs */}
+            {detectedUrls.length > 0 && !isExtracting && !preview && (
+              <div className="rounded-md border bg-muted/30 p-2">
+                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                  <Link2 className="h-3 w-3" />
+                  {detectedUrls.length} URL{detectedUrls.length > 1 ? "s" : ""} detected — will be scraped for details
+                </p>
+                {detectedUrls.slice(0, 3).map((url) => (
+                  <p key={url} className="text-xs text-primary truncate">{url}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Loading state */}
+            {isExtracting && (
+              <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Extracting...</p>
+                  <p className="text-xs text-muted-foreground">{extractionStep}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error state */}
+            {error && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <AlertCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            {/* Preview of extracted data */}
+            {preview && (
+              <div className="space-y-3 rounded-lg border border-green-200 bg-green-50/50 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-green-800">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Extraction Complete — Review below
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium text-muted-foreground">Title:</span>{" "}
+                    <span>{preview.title || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-muted-foreground">Category:</span>{" "}
+                    <Badge variant="outline" className="capitalize">{preview.category}</Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium text-muted-foreground">Description:</span>{" "}
+                    <span className="text-xs">{preview.description?.slice(0, 150) || "—"}{preview.description?.length > 150 ? "..." : ""}</span>
+                  </div>
+                  {preview.sectors.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="font-medium text-muted-foreground">Sectors:</span>
+                      {preview.sectors.map((s) => (
+                        <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  {(preview.start_date || preview.end_date) && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Dates:</span>{" "}
+                      <span>{preview.start_date || "?"} → {preview.is_rolling ? "Rolling Basis" : (preview.end_date || "?")}</span>
+                    </div>
+                  )}
+                  {preview.funding_stage && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Stage:</span>{" "}
+                      <span>{preview.funding_stage}</span>
+                    </div>
+                  )}
+                  {preview.funding_amount && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Amount:</span>{" "}
+                      <span>{preview.funding_amount}</span>
+                    </div>
+                  )}
+                  {preview.external_link && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Link:</span>{" "}
+                      <a href={preview.external_link} target="_blank" rel="noreferrer" className="text-primary text-xs underline truncate inline-block max-w-[280px] align-bottom">
+                        {preview.external_link}
+                      </a>
+                    </div>
+                  )}
+                  {preview.details_bullets.length > 0 && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Details:</span>
+                      <ul className="mt-1 list-disc list-inside text-xs space-y-0.5">
+                        {preview.details_bullets.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {preview.poster_image_url && (
+                    <div>
+                      <span className="font-medium text-muted-foreground">Poster:</span>{" "}
+                      <span className="text-xs text-green-700">Image found ✓</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              {!preview ? (
+                <Button
+                  className="w-full gap-1.5"
+                  onClick={handleExtract}
+                  disabled={isExtracting || !rawInput.trim()}
+                >
+                  {isExtracting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Extracting...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> Extract & Preview</>
+                  )}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setPreview(null);
+                      setError(null);
+                    }}
+                  >
+                    Re-extract
+                  </Button>
+                  <Button
+                    className="flex-1 gap-1.5"
+                    onClick={handleUseExtraction}
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Fill Form
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>
