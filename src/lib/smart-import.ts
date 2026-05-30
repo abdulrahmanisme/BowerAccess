@@ -101,7 +101,7 @@ Given the following text, extract these fields:
 - is_rolling: boolean — true if the deadline is described as "rolling", "ongoing", "open", or has no specific end date
 - external_link: the most relevant URL for applying/registering, or null
 - details_bullets: array of key facts as short strings (location, prize money, eligibility, cohort size, ticket price, etc.)
-- funding_stage: string or null — for funding category only (e.g., "Pre-seed", "Seed", "Series A", "Grant", "Fellowship")
+- startup_stage: string or null — target startup maturity stage. Allowed values: "Idea", "Pre-Seed", "Seed", "Series A", "Series B+", "Growth", "Any Stage"
 - funding_amount: string or null — for funding category only (e.g., "₹50L", "$100K", "Up to ₹1Cr")
 - poster_image_url: string or null — if there's an obvious image URL for the poster/banner
 
