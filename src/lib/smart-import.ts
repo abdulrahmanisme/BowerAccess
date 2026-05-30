@@ -135,11 +135,9 @@ SECTOR MAPPING GUIDE — use these heuristics to assign the correct sectors:
 - "Sportstech" → sports analytics, fitness tech, sports management, athlete tech, sports streaming
 - "Travel Hospitality" → travel booking, hotels, tourism, travel tech, hospitality management
 - "Web3" → blockchain, crypto, NFTs, DeFi, DAOs, decentralized apps, tokenization
-- "Other" → use this ONLY if no specific sector clearly applies
 
 SECTOR ASSIGNMENT RULES:
-1. ALWAYS assign at least 1 sector. Use "Other" only as absolute last resort.
-2. If the opportunity is an accelerator/incubator, ALWAYS include "Accelerator" AND the domain sector(s).
+1. ALWAYS assign at least 1 sector. Use "All Sector" only as absolute last resort.
 3. Multi-sector tagging is encouraged — e.g., a solar energy startup accelerator should get ["Accelerator", "Energy", "Cleantech"].
 4. Read the entire text carefully for sector clues — company names, industry mentions, target audience, keywords.
 5. If the opportunity is sector-agnostic (open to all startups), use ["Accelerator"] for funding or ["Other"] for events.
