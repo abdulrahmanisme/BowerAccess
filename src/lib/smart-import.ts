@@ -137,11 +137,11 @@ SECTOR MAPPING GUIDE — use these heuristics to assign the correct sectors:
 - "Web3" → blockchain, crypto, NFTs, DeFi, DAOs, decentralized apps, tokenization
 
 SECTOR ASSIGNMENT RULES:
-1. ALWAYS assign at least 1 sector. Use "All Sector" only as absolute last resort.
-3. Multi-sector tagging is encouraged — e.g., a solar energy startup accelerator should get ["Accelerator", "Energy", "Cleantech"].
-4. Read the entire text carefully for sector clues — company names, industry mentions, target audience, keywords.
-5. If the opportunity is sector-agnostic (open to all startups), use ["Accelerator"] for funding or ["Other"] for events.
-
+1. ALWAYS assign at least 1 sector. Use "All Sector" only when no specific sector can be determined.
+2. Multi-sector tagging is encouraged. Example: a solar energy startup program should get ["Energy", "Cleantech"].
+3. Read the entire text carefully for sector clues — company names, industry mentions, target audience, keywords.
+4. If the opportunity is sector-agnostic (open to all startups), use ["All Sector"].
+5. Do NOT use opportunity formats such as Accelerator, Incubator, Fellowship, Grant, Competition, Challenge, or Investment as sector tags.
 === GENERAL RULES ===
 1. Dates: Today's date is ${new Date().toISOString().split("T")[0]}. Parse relative dates like "next Friday", "June 15", "15th June 2026" into YYYY-MM-DD format.
 2. Currency: Preserve the original currency format (₹, $, etc.)
