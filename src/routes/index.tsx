@@ -426,7 +426,7 @@ export default function IndexPage() {
           Curated for builders and founders of Bower.
         </h1>
         <p className="mt-4 max-w-3xl text-base text-muted-foreground sm:text-lg">
-          This edition covers opportunities dated between 23 May – 7 June. Scan fast, act faster.
+          This edition covers opportunities dated between 30 May – 14 June. Scan fast, act faster.
         </p>
         <div className="mt-8">
           <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4 space-y-4">
